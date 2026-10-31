@@ -1,0 +1,13 @@
+standup_id,team_id,member_id,date,yesterday,today,blockers,claimed_task_ids,submitted_at,source_label
+SU001,team_fs_001,M001,2026-10-26,Completed standup form and navigation,Finish dashboard widgets,Waiting for API response contract,T002;T001,2026-10-26T09:15:00+05:30,synthetic
+SU002,team_fs_001,M002,2026-10-26,Completed team and task APIs; schema merged,Add validation and indexes,None,T003;T004,2026-10-26T09:15:00+05:30,synthetic
+SU003,team_fs_001,M003,2026-10-26,Ran 12 API checks and reviewed onboarding flow,Complete usability testing,Needs staging environment,T006;T012,2026-10-26T09:15:00+05:30,synthetic
+SU004,team_fs_001,M004,2026-10-26,Prototyped evidence matcher,Normalize GitHub and worklog events,Need stable evidence schema,T005,2026-10-26T09:15:00+05:30,synthetic
+SU005,team_fs_001,M005,2026-10-26,Finished sprint replan and mentor report,Polish both features,No blockers,T010;T011,2026-10-26T09:15:00+05:30,synthetic
+SU006,team_fs_001,M006,2026-10-26,Interviewed 4 students; delivered journey map and UX notes,Review accessibility copy,None,T007,2026-10-26T09:15:00+05:30,synthetic
+SU007,team_fs_001,M007,2026-10-26,Started CI pipeline; runner configuration failing,Fix deployment workflow,Runner permissions issue,T008,2026-10-26T09:15:00+05:30,synthetic
+SU008,team_fs_001,M008,2026-10-26,Loaded seed data and checked foreign-key consistency,Add analytics event model,None,T009,2026-10-26T09:15:00+05:30,synthetic
+SU009,team_fs_001,M005,2026-10-27,All three assigned tasks are complete and ready for review,Help with integration,None,T005;T010;T011,2026-10-27T09:15:00+05:30,synthetic
+SU010,team_fs_001,M003,2026-10-27,"Completed 9 test cases, reviewed 2 PRs, documented 3 usability issues",Finish test report,Waiting for latest build,T006;T012,2026-10-27T09:15:00+05:30,synthetic
+SU011,team_fs_001,M007,2026-10-27,I will be unavailable for the next three working days,Hand off CI notes,Personal scheduling conflict,T008,2026-10-27T09:15:00+05:30,synthetic
+SU012,team_fs_001,M006,2026-10-27,Completed research synthesis and delivered 6 wireframes,Support product review,None,T007;T020,2026-10-27T09:15:00+05:30,synthetic

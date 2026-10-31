@@ -1,0 +1,3 @@
+audit_event_id,team_id,run_id,actor_id,action,target_id,before_json,after_json,reason,created_at
+AU001,team_fs_001,RUN001,agent,assessment_created,RA001,{},"{""status"":""partially_verified""}",Evidence comparison completed,2026-10-27T18:00:00Z
+AU002,team_fs_001,RUN002,agent,approval_requested,AP001,"{""assignee_id"":""M007""}","{""proposed_assignee_id"":""M002""}",Temporary unavailability; awaiting mentor approval,2026-10-27T18:11:00Z

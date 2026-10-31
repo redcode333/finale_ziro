@@ -1,0 +1,14 @@
+worklog_id,team_id,member_id,task_id,hours,description,work_date,evidence_url,source_label
+W001,team_fs_001,M001,T002,4.0,Implemented standup form and client-side validation,2026-10-25,https://example.test/worklogs/W001,synthetic
+W002,team_fs_001,M002,T003,7.0,Implemented team and task API endpoints,2026-10-24,https://example.test/worklogs/W002,synthetic
+W003,team_fs_001,M002,T004,5.0,Designed relational schema and migration,2026-10-23,https://example.test/worklogs/W003,synthetic
+W004,team_fs_001,M003,T006,3.0,Executed API test suite and filed defects,2026-10-26,https://example.test/worklogs/W004,synthetic
+W005,team_fs_001,M003,T012,4.0,"Usability testing, test notes and reproduction steps",2026-10-27,https://example.test/worklogs/W005,synthetic
+W006,team_fs_001,M004,T005,5.0,Built initial evidence normalization prototype,2026-10-26,https://example.test/worklogs/W006,synthetic
+W007,team_fs_001,M005,T010,0.5,Reviewed task requirements; no implementation artifact linked,2026-10-27,https://example.test/worklogs/W007,synthetic
+W008,team_fs_001,M005,T011,0.0,No worklog submitted for this task,2026-10-27,,synthetic
+W009,team_fs_001,M006,T007,6.0,Conducted four user interviews and created journey map,2026-10-26,https://example.test/worklogs/W009,synthetic
+W010,team_fs_001,M006,T020,2.0,Accessibility review notes and copy suggestions,2026-10-27,https://example.test/worklogs/W010,synthetic
+W011,team_fs_001,M007,T008,2.0,Investigated CI runner permission issue and documented blocker,2026-10-27,https://example.test/worklogs/W011,synthetic
+W012,team_fs_001,M008,T009,5.0,Built idempotent seed importer and checked relationships,2026-10-25,https://example.test/worklogs/W012,synthetic
+W013,team_fs_001,M003,T006,2.0,Reviewed two pull requests and added test coverage suggestions,2026-10-27,https://example.test/worklogs/W013,synthetic

@@ -1,0 +1,15 @@
+event_id,team_id,member_id,github_username,event_type,task_id,title_or_message,occurred_at,repository_url,source_url,source_label
+GH001,team_fs_001,M001,aarav-sharma,commit,T002,Add standup form validation,2026-10-25T10:20:00Z,https://github.com/fairsprint-demo/campus-connect,https://example.test/github/GH001,synthetic
+GH002,team_fs_001,M002,diya-patel,pull_request,T003,API endpoints for team and tasks,2026-10-24T14:00:00Z,https://github.com/fairsprint-demo/campus-connect,https://example.test/github/GH002,synthetic
+GH003,team_fs_001,M002,diya-patel,commit,T004,Add initial database migration,2026-10-23T11:30:00Z,https://github.com/fairsprint-demo/campus-connect,https://example.test/github/GH003,synthetic
+GH004,team_fs_001,M003,neha-iyer,pull_request_review,T006,Review API tests and edge cases,2026-10-27T09:40:00Z,https://github.com/fairsprint-demo/campus-connect,https://example.test/github/GH004,synthetic
+GH005,team_fs_001,M003,neha-iyer,issue_comment,T012,Documented usability defect reproduction steps,2026-10-27T12:10:00Z,https://github.com/fairsprint-demo/campus-connect,https://example.test/github/GH005,synthetic
+GH006,team_fs_001,M004,kabir-verma,commit,T005,Add evidence normalization models,2026-10-26T16:00:00Z,https://github.com/fairsprint-demo/campus-connect,https://example.test/github/GH006,synthetic
+GH007,team_fs_001,M004,kabir-verma,pull_request,T005,Evidence adapter prototype,2026-10-27T13:00:00Z,https://github.com/fairsprint-demo/campus-connect,https://example.test/github/GH007,synthetic
+GH008,team_fs_001,M005,karan-mehta,issue_comment,T010,Reviewed replan requirements,2026-10-27T15:00:00Z,https://github.com/fairsprint-demo/campus-connect,https://example.test/github/GH008,synthetic
+GH009,team_fs_001,M005,karan-mehta,commit,T011,,2026-10-27T16:00:00Z,https://github.com/fairsprint-demo/campus-connect,https://example.test/github/GH009,synthetic
+GH010,team_fs_001,M006,sara-khan,issue_comment,T007,Research synthesis and user journey findings,2026-10-26T15:00:00Z,https://github.com/fairsprint-demo/campus-connect,https://example.test/github/GH010,synthetic
+GH011,team_fs_001,M007,rohan-das,issue,T008,CI runner permission issue,2026-10-27T10:00:00Z,https://github.com/fairsprint-demo/campus-connect,https://example.test/github/GH011,synthetic
+GH012,team_fs_001,M008,meera-nair,commit,T009,Add seed importer,2026-10-25T12:00:00Z,https://github.com/fairsprint-demo/campus-connect,https://example.test/github/GH012,synthetic
+GH013,team_fs_001,M003,neha-iyer,pull_request_review,T006,Second review: validation and test coverage,2026-10-27T16:20:00Z,https://github.com/fairsprint-demo/campus-connect,https://example.test/github/GH013,synthetic
+GH014,team_fs_001,M006,sara-khan,issue_comment,T020,Accessibility copy feedback,2026-10-27T17:00:00Z,https://github.com/fairsprint-demo/campus-connect,https://example.test/github/GH014,synthetic

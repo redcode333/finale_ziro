@@ -1,0 +1,3 @@
+replan_id,team_id,sprint_id,run_id,trigger_member_id,trigger_reason,task_id,current_assignee_id,proposed_assignee_id,proposal_status,capacity_check,dependency_check,rationale,created_at
+RP001,team_fs_001,SP001,RUN002,M007,Temporary unavailability for three working days,T008,M007,M002,pending_approval,pass_within_remaining_capacity,pass,M002 has DevOps-adjacent backend capacity; CI task is blocked and handoff notes exist. Mentor must approve.,2026-10-27T18:10:00Z
+RP002,team_fs_001,SP001,RUN001,M005,Task completion claims not sufficiently supported,T010,M005,M004,draft,needs_confirmation,pass_if_T005_completed,Do not reassign based solely on evidence mismatch. Ask for clarification first; any reassignment requires mentor approval.,2026-10-27T18:12:00Z

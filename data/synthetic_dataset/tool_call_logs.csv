@@ -1,0 +1,4 @@
+tool_call_id,run_id,tool_name,status,latency_ms,result_count,source_label
+TC001,RUN001,get_team_tasks,success,42,20,synthetic_fixture
+TC002,RUN001,get_member_worklogs,success,31,13,synthetic_fixture
+TC003,RUN001,get_github_activity,success,210,14,synthetic_fixture

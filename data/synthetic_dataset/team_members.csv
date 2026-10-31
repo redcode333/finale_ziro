@@ -1,0 +1,9 @@
+member_id,team_id,name,email,github_username,role,skills,weekly_capacity_hours,availability_status
+M001,team_fs_001,Aarav Sharma,aarav@example.test,aarav-sharma,Frontend Lead,React;TypeScript;UI,20,available
+M002,team_fs_001,Diya Patel,diya@example.test,diya-patel,Backend Engineer,Python;FastAPI;PostgreSQL,20,available
+M003,team_fs_001,Neha Iyer,neha@example.test,neha-iyer,QA and Documentation,Testing;Playwright;Docs,16,available
+M004,team_fs_001,Kabir Verma,kabir@example.test,kabir-verma,AI Engineer,Python;LangGraph;LLMs,20,available
+M005,team_fs_001,Karan Mehta,karan@example.test,karan-mehta,Full-stack Engineer,React;Python;APIs,18,available
+M006,team_fs_001,Sara Khan,sara@example.test,sara-khan,Product and UX,Figma;Research;Product,14,available
+M007,team_fs_001,Rohan Das,rohan@example.test,rohan-das,DevOps Engineer,Docker;CI/CD;Render,16,temporarily_unavailable
+M008,team_fs_001,Meera Nair,meera@example.test,meera-nair,Data Engineer,SQL;ETL;Analytics,18,available

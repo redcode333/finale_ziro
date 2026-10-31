@@ -1,0 +1,21 @@
+task_id,team_id,project_id,sprint_id,title,assignee_id,status,priority,estimate_hours,due_date,dependency_task_ids,workstream
+T001,team_fs_001,proj_fs_001,SP001,Build dashboard shell,M001,in_progress,high,8,2026-10-27,,frontend
+T002,team_fs_001,proj_fs_001,SP001,Implement standup form,M001,done,medium,5,2026-10-25,T001,frontend
+T003,team_fs_001,proj_fs_001,SP001,Create team and task API,M002,done,high,8,2026-10-24,,backend
+T004,team_fs_001,proj_fs_001,SP001,Design Supabase schema,M002,done,high,6,2026-10-23,,backend
+T005,team_fs_001,proj_fs_001,SP001,Implement evidence normalization,M004,in_progress,high,10,2026-10-29,T003;T004,agent
+T006,team_fs_001,proj_fs_001,SP001,Write API integration tests,M003,in_progress,medium,7,2026-10-30,T003,qa
+T007,team_fs_001,proj_fs_001,SP001,Create onboarding user research,M006,done,medium,6,2026-10-26,,product
+T008,team_fs_001,proj_fs_001,SP001,Configure CI pipeline,M007,blocked,medium,6,2026-10-28,,devops
+T009,team_fs_001,proj_fs_001,SP001,Build seed-data importer,M008,done,medium,5,2026-10-25,T004,data
+T010,team_fs_001,proj_fs_001,SP001,Implement sprint replan service,M005,todo,high,9,2026-10-30,T003;T005,backend
+T011,team_fs_001,proj_fs_001,SP001,Create mentor report template,M005,todo,medium,5,2026-10-31,T006,reporting
+T012,team_fs_001,proj_fs_001,SP001,Run usability test and summarize findings,M003,in_progress,medium,6,2026-10-31,T002;T007,qa
+T013,team_fs_001,proj_fs_001,SP002,Implement LangGraph approval interrupt,M004,todo,high,10,2026-11-06,T005,agent
+T014,team_fs_001,proj_fs_001,SP002,Build approval queue UI,M001,todo,high,7,2026-11-05,T001,frontend
+T015,team_fs_001,proj_fs_001,SP002,Add GitHub PR review ingestion,M002,todo,high,8,2026-11-07,T005,backend
+T016,team_fs_001,proj_fs_001,SP002,Create reliability evaluation runner,M003,todo,high,8,2026-11-10,T006,qa
+T017,team_fs_001,proj_fs_001,SP002,Build mentor weekly report endpoint,M005,todo,medium,6,2026-11-11,T011,reporting
+T018,team_fs_001,proj_fs_001,SP002,Prepare deployment and rollback guide,M007,todo,medium,5,2026-11-08,T008,devops
+T019,team_fs_001,proj_fs_001,SP002,Create analytics event model,M008,todo,medium,6,2026-11-09,T009,data
+T020,team_fs_001,proj_fs_001,SP002,Review accessibility and UX copy,M006,todo,low,4,2026-11-12,T007,product
