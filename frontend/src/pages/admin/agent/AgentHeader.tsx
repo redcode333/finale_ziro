@@ -1,4 +1,5 @@
 import { Pause, Play, RotateCcw, Square } from 'lucide-react'
+import { isLiveSession } from '@/api/live'
 import { ToneBadge } from '@/components/common/StatusBadge'
 import { Button } from '@/components/ui/button'
 import { runStatusMeta } from '@/lib/status'
@@ -34,7 +35,7 @@ export default function AgentHeader({ sprints, sprintId, onSprintChange, run, bu
           {sprints.map((s) => <option key={s.sprint_id} value={s.sprint_id}>{s.name}</option>)}
         </select>
         <ToneBadge tone={meta.tone} pulse={active}>{meta.label}</ToneBadge>
-        {run && (
+        {run && !isLiveSession() && (
           <div className="flex gap-1" role="group" aria-label="Run controls">
             {active && <Button size="sm" variant="outline" disabled={busy} onClick={() => onControl('pause')}><Pause aria-hidden /> Pause</Button>}
             {status === 'paused' && <Button size="sm" variant="outline" disabled={busy} onClick={() => onControl('resume')}><Play aria-hidden /> Resume</Button>}

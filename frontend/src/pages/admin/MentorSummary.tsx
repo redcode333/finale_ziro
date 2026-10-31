@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ApiError } from '@/api/client'
+import { isLiveSession } from '@/api/live'
 import { fmtTime } from '@/lib/status'
 import { reportToMarkdown } from '@/lib/reportMarkdown'
 import type { WeeklyReport } from '@/types'
@@ -40,7 +41,7 @@ export default function MentorSummary({ report, generating, error, onGenerate, o
         <CardTitle className="flex items-center gap-2"><FileText className="size-4" aria-hidden /> Mentor summary</CardTitle>
         <div className="flex flex-wrap gap-1.5 print:hidden">
           <Button size="sm" disabled={generating} onClick={onGenerate}>
-            <RefreshCw className={generating ? 'animate-spin' : ''} aria-hidden /> {generating ? 'Writing…' : s ? 'Regenerate' : 'Generate report'}
+            <RefreshCw className={generating ? 'animate-spin' : ''} aria-hidden /> {generating ? (isLiveSession() ? 'Refreshing…' : 'Writing…') : isLiveSession() ? 'Refresh report' : s ? 'Regenerate' : 'Generate report'}
           </Button>
           <Button size="sm" variant="outline" onClick={copy}><Copy aria-hidden /> Copy Markdown</Button>
           <Button size="sm" variant="outline" onClick={download}><Download aria-hidden /> Download</Button>
@@ -61,12 +62,12 @@ export default function MentorSummary({ report, generating, error, onGenerate, o
           </div>
         ) : !s ? (
           <p className="text-muted-foreground">
-            No summary has been written for this sprint yet. Generate one to get a short written report where every statement cites the records behind it.
+            No summary has been written for this sprint yet. {isLiveSession() ? 'The backend writes it after a run’s approvals are decided.' : 'Generate one to get a short written report where every statement cites the records behind it.'}
           </p>
         ) : (
           <>
             <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-              <ToneBadge tone={s.sample ? 'warning' : 'violet'}>{s.sample ? 'Sample text (mock backend)' : 'AI-written from stored records'}</ToneBadge>
+              <ToneBadge tone={s.kind === 'sample' ? 'warning' : s.kind === 'ai' ? 'violet' : 'neutral'}>{s.kind === 'sample' ? 'Sample text (mock backend)' : s.kind === 'ai' ? 'AI-written from stored records' : 'Compiled from stored records (rule-based)'}</ToneBadge>
               <span className="font-mono">{s.provider} · {s.model}</span>
               <span>generated {fmtTime(s.generated_at)}</span>
             </div>

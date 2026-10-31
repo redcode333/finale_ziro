@@ -116,12 +116,13 @@ export interface ReplanImpact {
 }
 
 export interface Recommendation {
-  impact: ReplanImpact
+  // Null for a formal risk review, which has no task to move.
+  impact: ReplanImpact | null
   recommendation_id: string // shares ID with its approval
   approval_id: string
   run_id: string
   task_id: string
-  type: 'task_reassignment'
+  type: 'task_reassignment' | 'risk_review'
   trigger_reason: string
   rationale: string
   current_assignee_id: string
@@ -232,8 +233,8 @@ export interface ReportSummary {
   generated_at: string
   provider: string
   model: string
-  // True when produced by the mock backend, not a language model.
-  sample: boolean
+  // sample: mock text. deterministic: compiled by rules from stored records. ai: written by a language model.
+  kind: 'sample' | 'deterministic' | 'ai'
 }
 
 export interface WeeklyReport {
@@ -391,7 +392,7 @@ export interface ToolCall {
   run_id: string
   tool_name: string
   operation: string
-  status: 'success' | 'failed'
+  status: 'success' | 'failed' | 'partial'
   http_status: number | null
   latency_ms: number
   retries: number

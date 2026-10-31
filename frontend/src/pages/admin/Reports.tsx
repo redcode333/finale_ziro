@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { ApiError } from '@/api/client'
 import { useEvidence, useGenerateReport, useMembers, useWeeklyReport } from '@/api/hooks'
 import { useAuth } from '@/auth/AuthContext'
 import { ApprovalStatusBadge, ToneBadge } from '@/components/common/StatusBadge'
@@ -12,13 +13,16 @@ import MentorSummary from './MentorSummary'
 export default function Reports() {
   const { me } = useAuth()
   const teamId = me?.memberships.find((m) => m.role === 'ADMIN')?.team_id ?? ''
-  const { data: r, isPending, isError } = useWeeklyReport(teamId)
+  const { data: r, isPending, isError, error } = useWeeklyReport(teamId)
   const generate = useGenerateReport(teamId)
   const { data: evidence } = useEvidence(teamId)
   const { data: teamMembers } = useMembers(teamId)
   const [cite, setCite] = useState<string | null>(null)
 
-  if (isError) return <p role="alert" className="text-critical">Could not load the weekly report.</p>
+  if (isError) {
+    const none = error instanceof ApiError && error.status === 404
+    return <p role={none ? 'status' : 'alert'} className={none ? 'text-muted-foreground' : 'text-critical'}>{error instanceof ApiError ? error.message : 'Could not load the weekly report.'}</p>
+  }
   if (isPending || !r) return <Skeleton className="h-64" />
 
   const members = r.contributions.map((c) => ({ member_id: c.member_id, name: c.name })) as never

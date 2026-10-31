@@ -64,8 +64,8 @@ export default function Approvals() {
                 {rows.map((a) => (
                   <tr key={a.approval_id} className="border-t border-border">
                     <td className="px-4 py-2 font-mono text-xs">{a.approval_id}</td>
-                    <td className="px-4 py-2">{tasks?.find((t) => t.task_id === a.task_id)?.title ?? a.task_id} <span className="font-mono text-xs text-muted-foreground">{a.task_id}</span></td>
-                    <td className="px-4 py-2">{nameOf(members, a.current_assignee_id)} → {nameOf(members, a.proposed_assignee_id)}</td>
+                    <td className="px-4 py-2">{a.type === 'risk_review' ? 'Formal risk review' : <>{tasks?.find((t) => t.task_id === a.task_id)?.title ?? a.task_id} <span className="font-mono text-xs text-muted-foreground">{a.task_id}</span></>}</td>
+                    <td className="px-4 py-2">{a.type === 'risk_review' ? 'No assignment change' : `${nameOf(members, a.current_assignee_id)} → ${nameOf(members, a.proposed_assignee_id)}`}</td>
                     <td className="px-4 py-2"><ApprovalStatusBadge status={a.status} /></td>
                     <td className="px-4 py-2 text-xs text-muted-foreground">{fmtTime(a.created_at)}</td>
                     <td className="px-4 py-2 text-right">

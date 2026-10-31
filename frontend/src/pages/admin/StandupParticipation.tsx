@@ -1,3 +1,4 @@
+import MockOnlyNote from '@/components/common/MockOnlyNote'
 import { Bell, ChevronLeft, ChevronRight } from 'lucide-react'
 import { useState } from 'react'
 import { useMembers, useRemind, useStandupStatus } from '@/api/hooks'
@@ -58,6 +59,7 @@ export default function StandupParticipation({ teamId }: { teamId: string }) {
       <CardContent className="space-y-3">
         {isPending || !data ? <Skeleton className="h-24" /> : (
           <>
+            <MockOnlyNote what="Standup participation" />
             <ul className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4" aria-live="polite">
               {data.members.map((m) => {
                 const st = STATE[m.state]

@@ -1,6 +1,7 @@
 import { ArrowRight, CheckCircle2, ShieldCheck } from 'lucide-react'
 import { useState } from 'react'
 import { useLlmCalls, useToolCalls } from '@/api/hooks'
+import { isLiveSession } from '@/api/live'
 import { ToneBadge } from '@/components/common/StatusBadge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -45,7 +46,7 @@ function ToolCalls({ calls }: { calls: ToolCall[] }) {
                   {c.error && <span className="mt-0.5 block text-critical">{c.error}</span>}
                 </td>
                 <td className="px-2 py-1.5 whitespace-nowrap">
-                  <ToneBadge tone={c.status === 'success' ? 'success' : 'critical'}>{c.status === 'success' ? 'Success' : 'Failed'}{c.http_status ? ` · ${c.http_status}` : ''}</ToneBadge>
+                  <ToneBadge tone={c.status === 'success' ? 'success' : c.status === 'partial' ? 'warning' : 'critical'}>{c.status === 'success' ? 'Success' : c.status === 'partial' ? 'Partial' : 'Failed'}{c.http_status ? ` · ${c.http_status}` : ''}</ToneBadge>
                   {c.retries > 0 && <span className="ml-1 text-xs text-muted-foreground">{c.retries} retries</span>}
                 </td>
                 <td className="px-2 py-1.5 font-mono text-xs whitespace-nowrap">{fmtDuration(c.latency_ms)}</td>
@@ -110,7 +111,9 @@ export default function RunTrace({ runId, active }: { runId?: string; active: bo
       <CardHeader className="flex-row flex-wrap items-center justify-between gap-2">
         <CardTitle>Run trace</CardTitle>
         <div className="flex items-center gap-2">
-          {sample && <ToneBadge tone="warning">Sample trace (mock backend)</ToneBadge>}
+          {isLiveSession()
+            ? <ToneBadge tone="success">Live backend trace{sample ? ' · synthetic data' : ''}</ToneBadge>
+            : sample && <ToneBadge tone="warning">Sample trace (mock backend)</ToneBadge>}
           <div className="flex gap-1" role="group" aria-label="Trace view">
             {([['tools', `Tool calls${tools.data ? ` (${tools.data.length})` : ''}`], ['llm', `LLM calls${llm.data ? ` (${llm.data.length})` : ''}`]] as const).map(([k, label]) => (
               <button key={k} type="button" aria-pressed={view === k} onClick={() => setView(k)}

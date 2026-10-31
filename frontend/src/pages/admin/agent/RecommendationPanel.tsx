@@ -14,14 +14,18 @@ export function RecommendationCard({ rec, task, members, onReview }: { rec: Reco
         <span className="font-mono text-xs text-muted-foreground">{rec.recommendation_id} · {fmtTime(rec.created_at)}</span>
         <ApprovalStatusBadge status={rec.status} />
       </div>
-      <p className="font-medium">
-        {task?.title ?? rec.task_id} <span className="font-mono text-xs text-muted-foreground">{rec.task_id}{task ? ` · ${task.priority} priority` : ''}</span>
-      </p>
-      <p className="flex items-center gap-2">
-        {nameOf(members, rec.current_assignee_id)} <ArrowRight className="size-4 text-muted-foreground" aria-label="reassign to" /> <span className="text-primary">{nameOf(members, rec.proposed_assignee_id)}</span>
-      </p>
+      {rec.type === 'risk_review' ? (
+        <p className="font-medium">Formal risk review</p>
+      ) : (<>
+        <p className="font-medium">
+          {task?.title ?? rec.task_id} <span className="font-mono text-xs text-muted-foreground">{rec.task_id}{task ? ` · ${task.priority} priority` : ''}</span>
+        </p>
+        <p className="flex items-center gap-2">
+          {nameOf(members, rec.current_assignee_id)} <ArrowRight className="size-4 text-muted-foreground" aria-label="reassign to" /> <span className="text-primary">{nameOf(members, rec.proposed_assignee_id)}</span>
+        </p>
+      </>)}
       <p className="text-muted-foreground">{rec.rationale}</p>
-      <p className="text-xs text-muted-foreground">{rec.evidence_ids.length} evidence records · checks: capacity {rec.capacity_check.replaceAll('_', ' ')}, dependencies {rec.dependency_check.replaceAll('_', ' ')}</p>
+      <p className="text-xs text-muted-foreground">{rec.evidence_ids.length} evidence records{rec.type === 'task_reassignment' ? ` · checks: capacity ${rec.capacity_check.replaceAll('_', ' ')}, dependencies ${rec.dependency_check.replaceAll('_', ' ')}` : ''}</p>
       <Button size="sm" variant={isActionable(rec.status) ? 'default' : 'outline'} onClick={() => onReview(rec.recommendation_id)}>
         {isActionable(rec.status) ? 'Review' : 'View'}
       </Button>

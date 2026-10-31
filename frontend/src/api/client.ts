@@ -1,3 +1,5 @@
+import { ApiError } from './errors'
+import { isLiveSession, liveApi } from './live'
 import type {
   AgentEvent, AgentRun, ApiErrorBody, Claim, AppNotification, AuditEvent, Blocker, BlockerInput, LlmCall, ToolCall, ReplanRequest, ReplanResult, StandupStatus, GithubConnection, GithubScope, Invitation, Standup, StandupInput, Dashboard, DecisionRequest,
   EvidenceRecord, EvaluationResults, Me, Member, Page, Recommendation, SimulationResult, Sprint, Task, WeeklyReport,
@@ -5,17 +7,7 @@ import type {
 
 const BASE_URL = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? ''
 
-export class ApiError extends Error {
-  status: number
-  code: string
-  retryable: boolean
-  constructor(status: number, body?: ApiErrorBody['error']) {
-    super(body?.message ?? `Request failed (${status})`)
-    this.status = status
-    this.code = body?.code ?? 'unknown'
-    this.retryable = body?.retryable ?? status >= 500
-  }
-}
+export { ApiError } from './errors'
 
 // The auth layer registers a header provider so the client never imports React state.
 let getAuthHeaders: () => Record<string, string> = () => ({})
@@ -41,7 +33,7 @@ const post = <T>(path: string, body?: unknown) =>
   request<T>(path, { method: 'POST', body: body ? JSON.stringify(body) : undefined, idempotent: true })
 
 // One function per contract endpoint. Components reach these only through hooks.
-export const api = {
+const contractApi = {
   health: () => request<{ status: string }>('/health'),
   me: () => request<Me>('/me'),
   dashboard: (teamId: string) => request<Dashboard>(`/teams/${teamId}/dashboard`),
@@ -105,3 +97,13 @@ export const api = {
   simulate: (scenario: string) => post<SimulationResult>(`/reliability/simulate/${scenario}`),
   notifications: () => request<Page<AppNotification>>('/notifications'),
 }
+
+// A session signed in with a mentor token talks to the real backend for everything it can answer (see live.ts).
+// Everything else, and every non-mentor session, keeps using the contract API served by the mock layer.
+const overrides = liveApi as unknown as Record<string, (...a: unknown[]) => unknown>
+export const api = Object.fromEntries(
+  Object.entries(contractApi).map(([name, fn]) => [
+    name,
+    (...args: unknown[]) => (isLiveSession() && name in overrides ? overrides[name](...args) : (fn as (...a: unknown[]) => unknown)(...args)),
+  ]),
+) as typeof contractApi
