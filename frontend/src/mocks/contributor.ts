@@ -1,6 +1,6 @@
 import dataset from '../../../data/synthetic_dataset/dataset.json'
-import type { Blocker, Standup } from '@/types'
-import { TEAM_ID } from './store'
+import type { Blocker, Invitation, Standup } from '@/types'
+import { PROJECT_ID, TEAM_ID } from './store'
 
 const rows = dataset.tables.standups as unknown as Record<string, string>[]
 
@@ -28,3 +28,8 @@ export function once<T>(key: string | null, create: () => T): T {
   if (key) seen.set(key, v)
   return v
 }
+
+export const invitations: Invitation[] = [
+  { invitation_id: 'INV001', project_id: PROJECT_ID, email: 'priya@example.test', role: 'CONTRIBUTOR', status: 'pending',
+    invited_by: 'MENTOR001', created_at: '2026-10-29T09:00:00Z', expires_at: '2026-11-05T09:00:00Z' },
+]

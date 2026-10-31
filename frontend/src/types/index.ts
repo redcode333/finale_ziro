@@ -281,3 +281,14 @@ export interface BlockerInput {
   task_id: string | null
   description: string
 }
+
+export interface Invitation {
+  invitation_id: string
+  project_id: string
+  email: string
+  role: 'CONTRIBUTOR'
+  status: 'pending' | 'accepted' | 'revoked' | 'expired'
+  invited_by: string
+  created_at: string
+  expires_at: string
+}

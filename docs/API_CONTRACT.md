@@ -103,7 +103,9 @@ Allowed transitions: `pending_review → approved_execution_pending | rejected |
 | PATCH ★ | `/tasks/{id}` | Contributor updates own task `{status}`. Any `assignee_id` in the body is rejected with 403 (reassignment is approval-only) |
 
 **Server-side scoping (contributors):** `/teams/{id}/tasks`, `/evidence`, `/members` and `/standups` return only the caller's own records; `risks` in the dashboard are admin-only. `POST /standups` rejects claims on tasks the caller does not own (403) and is idempotent on `Idempotency-Key`.
-| POST ★ | `/projects/{id}/invitations` · POST `/invitations/{token}/accept` | Invitation flow (post-MVP) |
+| GET ★ · POST ★ | `/projects/{id}/invitations` | List · create `{email}` → `Invitation {invitation_id, email, role: CONTRIBUTOR, status: pending\|accepted\|revoked\|expired, expires_at}`. `422 invalid_email`, `409 already_member`, `409 already_invited` |
+| DELETE ★ | `/invitations/{id}` | Revoke a pending invitation (`409 not_pending` otherwise) |
+| POST ★ | `/invitations/{token}/accept` | Accept (single-use, expiring). Not built in the frontend yet |
 
 Backend owns `PATCH /tasks/{id}/assignee` only as an internal mutation node; the UI changes owners exclusively via an approval decision.
 

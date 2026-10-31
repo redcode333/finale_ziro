@@ -146,3 +146,22 @@ export function useResolveBlocker() {
     onError: (e) => toast.error(errMsg(e)),
   })
 }
+
+export const useInvitations = (projectId: string) =>
+  useQuery({ queryKey: ['invitations', projectId], queryFn: () => api.invitations(projectId), enabled: !!projectId, select: (d) => d.items })
+export function useInvite(projectId: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (email: string) => api.invite(projectId, { email }),
+    onSuccess: (i) => { qc.invalidateQueries({ queryKey: ['invitations'] }); toast.success(`Invitation sent to ${i.email}`) },
+    onError: (e) => toast.error(errMsg(e)),
+  })
+}
+export function useRevokeInvitation() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: string) => api.revokeInvitation(id),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['invitations'] }); toast.success('Invitation revoked') },
+    onError: (e) => toast.error(errMsg(e)),
+  })
+}

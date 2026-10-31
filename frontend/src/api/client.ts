@@ -1,5 +1,5 @@
 import type {
-  AgentEvent, AgentRun, ApiErrorBody, AppNotification, AuditEvent, Blocker, BlockerInput, Standup, StandupInput, Dashboard, DecisionRequest,
+  AgentEvent, AgentRun, ApiErrorBody, AppNotification, AuditEvent, Blocker, BlockerInput, Invitation, Standup, StandupInput, Dashboard, DecisionRequest,
   EvidenceRecord, EvaluationResults, Me, Member, Page, Recommendation, SimulationResult, Sprint, Task, WeeklyReport,
 } from '@/types'
 
@@ -80,6 +80,9 @@ export const api = {
   raiseBlocker: (b: BlockerInput) => post<Blocker>('/blockers', b),
   resolveBlocker: (id: string) =>
     request<Blocker>(`/blockers/${id}`, { method: 'PATCH', body: JSON.stringify({ status: 'resolved' }), idempotent: true }),
+  invitations: (projectId: string) => request<Page<Invitation>>(`/projects/${projectId}/invitations`),
+  invite: (projectId: string, b: { email: string }) => post<Invitation>(`/projects/${projectId}/invitations`, b),
+  revokeInvitation: (id: string) => request<Invitation>(`/invitations/${id}`, { method: 'DELETE', idempotent: true }),
   weeklyReport: (teamId: string) => request<WeeklyReport>(`/reports/weekly${qs({ team_id: teamId })}`),
   runEvaluations: () => post<EvaluationResults>('/evaluations/run'),
   evaluationResults: () => request<EvaluationResults>('/evaluations/results'),

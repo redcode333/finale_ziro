@@ -3,7 +3,6 @@ import {
 } from 'lucide-react'
 import { Navigate, Route, Routes } from 'react-router-dom'
 import AppShell, { type NavItem } from '@/layouts/AppShell'
-import ComingSoon from '@/pages/ComingSoon'
 import Denied from '@/pages/Denied'
 import SignIn from '@/pages/SignIn'
 import Approvals from '@/pages/admin/Approvals'
@@ -12,6 +11,8 @@ import DailyStandup from '@/pages/contributor/DailyStandup'
 import MyContributions from '@/pages/contributor/MyContributions'
 import MyDashboard from '@/pages/contributor/MyDashboard'
 import MyTasks from '@/pages/contributor/MyTasks'
+import SprintManagement from '@/pages/admin/SprintManagement'
+import TeamManagement from '@/pages/admin/TeamManagement'
 import Overview from '@/pages/admin/Overview'
 import ReliabilityLab from '@/pages/admin/ReliabilityLab'
 import Reports from '@/pages/admin/Reports'
@@ -35,7 +36,6 @@ const contributorNav: NavItem[] = [
   { to: '/contributor/blockers', label: 'Blockers', icon: Flag },
 ]
 
-const stub = (title: string) => <ComingSoon title={title} />
 
 export default function App() {
   return (
@@ -46,8 +46,8 @@ export default function App() {
       <Route element={<RequireRole role="ADMIN" />}>
         <Route path="/admin" element={<AppShell portal="Admin portal" items={adminNav} />}>
           <Route index element={<Overview />} />
-          <Route path="team" element={stub('Team')} />
-          <Route path="sprint" element={stub('Sprint')} />
+          <Route path="team" element={<TeamManagement />} />
+          <Route path="sprint" element={<SprintManagement />} />
           <Route path="agent" element={<AgentCenter />} />
           <Route path="approvals" element={<Approvals />} />
           <Route path="reports" element={<Reports />} />

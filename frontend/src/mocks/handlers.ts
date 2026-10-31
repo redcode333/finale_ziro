@@ -1,5 +1,5 @@
 import { delay, http, HttpResponse } from 'msw'
-import { blockers, once, standups } from './contributor'
+import { blockers, invitations, once, standups } from './contributor'
 import { evaluationResults, runEvaluations, simulate, weeklyReport } from './reports'
 import {
   ADMIN_ID, TEAM_ID, approvals, auditEvents, controlRun, dashboardFor, decide, evidence, getEvents, getRun,
@@ -194,6 +194,36 @@ export const handlers = [
     b.status = 'resolved'
     b.resolved_at = new Date().toISOString()
     return HttpResponse.json(b)
+  }),
+  http.get('/projects/:id/invitations', ({ request }) => adminOnly(request) ?? HttpResponse.json(page(invitations.slice().reverse()))),
+  http.post('/projects/:id/invitations', async ({ request, params }) => {
+    const denied = adminOnly(request)
+    if (denied) return denied
+    const { email } = (await request.json()) as { email: string }
+    const clean = (email ?? '').trim().toLowerCase()
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(clean)) return fail(422, 'invalid_email', 'Enter a valid email address.')
+    if (members.some((m) => m.email.toLowerCase() === clean)) return fail(409, 'already_member', 'This person is already on the team.')
+    if (invitations.some((i) => i.email === clean && i.status === 'pending')) return fail(409, 'already_invited', 'A pending invitation already exists for this email.')
+    await delay(250)
+    return HttpResponse.json(once(request.headers.get('idempotency-key'), () => {
+      const now = Date.now()
+      const row = {
+        invitation_id: `INV${String(invitations.length + 1).padStart(3, '0')}`, project_id: String(params.id), email: clean,
+        role: 'CONTRIBUTOR' as const, status: 'pending' as const, invited_by: userOf(request)!.user_id,
+        created_at: new Date(now).toISOString(), expires_at: new Date(now + 7 * 864e5).toISOString(),
+      }
+      invitations.push(row)
+      return row
+    }), { status: 201 })
+  }),
+  http.delete('/invitations/:id', ({ request, params }) => {
+    const denied = adminOnly(request)
+    if (denied) return denied
+    const inv = invitations.find((i) => i.invitation_id === params.id)
+    if (!inv) return fail(404, 'not_found', 'Invitation not found')
+    if (inv.status !== 'pending') return fail(409, 'not_pending', 'Only pending invitations can be revoked.')
+    inv.status = 'revoked'
+    return HttpResponse.json(inv)
   }),
   http.get('/reports/weekly', ({ request }) => adminOnly(request) ?? HttpResponse.json(weeklyReport())),
   http.post('/evaluations/run', async ({ request }) => {
