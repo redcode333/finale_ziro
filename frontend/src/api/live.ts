@@ -26,20 +26,31 @@ export const setMentorToken = (t: string | null) => {
 export const isLiveSession = () => liveConfigured && !!getMentorToken()
 
 // ---- transport -----------------------------------------------------------------------------------
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
+
+// Reads are retried once: a dropped connection or a transient 5xx on a GET is safe to repeat. Writes are never retried here.
 async function lreq<T>(path: string, init: RequestInit = {}): Promise<T> {
-  const res = await fetch(`${BASE}${path}`, {
-    ...init,
-    headers: {
-      Accept: 'application/json',
-      ...(init.body ? { 'Content-Type': 'application/json' } : {}),
-      Authorization: `Bearer ${getMentorToken() ?? ''}`,
-    },
-  })
-  if (!res.ok) {
-    const b = (await res.json().catch(() => undefined)) as { code?: string; message?: string } | undefined
-    throw new ApiError(res.status, { code: b?.code ?? 'http_error', message: b?.message ?? `Request failed (${res.status})`, request_id: '', retryable: res.status >= 500 })
+  const read = (init.method ?? 'GET').toUpperCase() === 'GET'
+  const attempts = read ? 2 : 1
+  for (let attempt = 1; ; attempt++) {
+    try {
+      const res = await fetch(`${BASE}${path}`, {
+        ...init,
+        headers: {
+          Accept: 'application/json',
+          ...(init.body ? { 'Content-Type': 'application/json' } : {}),
+          Authorization: `Bearer ${getMentorToken() ?? ''}`,
+        },
+      })
+      if (res.ok) return (await res.json()) as T
+      if (read && res.status >= 500 && attempt < attempts) { await sleep(400); continue }
+      const b = (await res.json().catch(() => undefined)) as { code?: string; message?: string } | undefined
+      throw new ApiError(res.status, { code: b?.code ?? 'http_error', message: b?.message ?? `Request failed (${res.status})`, request_id: '', retryable: res.status >= 500 })
+    } catch (e) {
+      if (e instanceof ApiError || attempt >= attempts) throw e // a real answer, or out of attempts
+      await sleep(400) // network failure on a read: try once more
+    }
   }
-  return (await res.json()) as T
 }
 
 // Several adapters read the same run or the same lists on every 2 s poll; share one request per short window.
@@ -409,8 +420,10 @@ export const liveApi = {
     if (b.decision === 'modify') unsupported('Modifying a proposal')
     await lreq(`/approvals/${id}/decision`, { method: 'POST', body: JSON.stringify({ decision: b.decision, reason: b.reason ?? b.manager_note }) })
     cache.clear()
-    const list = await buildRecommendations()
-    const r = list.find((x) => x.approval_id === id) ?? seen.get(id)!
+    // The decision is already saved. If refreshing the list fails, fall back to what we last saw instead of reporting a failure.
+    const list = await buildRecommendations().catch(() => [] as Recommendation[])
+    const r = list.find((x) => x.approval_id === id) ?? seen.get(id)
+    if (!r) throw new ApiError(502, { code: 'refresh_failed', message: 'The decision was saved, but the page could not refresh. Reload to see it.', retryable: false })
     // The backend applies an approval immediately, so the decided proposal is final.
     const done: Recommendation = { ...r, status: b.decision === 'approve' ? 'completed' : 'rejected', execution_status: b.decision === 'approve' ? 'completed' : null,
       decided_at: new Date().toISOString(), manager_note: b.manager_note ?? null, decision_reason: b.reason ?? null }

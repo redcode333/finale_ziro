@@ -38,7 +38,8 @@ export const useRecommendationEvidence = (id?: string) =>
 export const useAuditEvents = () =>
   useQuery({ queryKey: ['audit'], queryFn: () => api.auditEvents(), select: (d) => d.items, refetchInterval: POLL_MS })
 
-const errMsg = (e: unknown) => (e instanceof ApiError ? e.message : 'Something went wrong. Please try again.')
+const errMsg = (e: unknown) =>
+  e instanceof ApiError ? e.message : e instanceof TypeError ? 'Could not reach the server. Check your connection and try again.' : 'Something went wrong. Please try again.'
 
 export function useStartRun(teamId: string, onStarted: (runId: string) => void) {
   const qc = useQueryClient()
