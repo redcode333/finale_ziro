@@ -1,4 +1,4 @@
-import { ApiError } from './errors'
+import { ApiError, readJson } from './errors'
 import { isLiveSession, liveApi } from './live'
 import type {
   AgentEvent, AgentRun, ApiErrorBody, Claim, AppNotification, AuditEvent, Blocker, BlockerInput, LlmCall, ToolCall, ReplanRequest, ReplanResult, StandupStatus, GithubConnection, GithubScope, Invitation, Standup, StandupInput, Dashboard, DecisionRequest,
@@ -22,7 +22,7 @@ async function request<T>(path: string, init: RequestInit & { idempotent?: boole
     const body = (await res.json().catch(() => undefined)) as ApiErrorBody | undefined
     throw new ApiError(res.status, body?.error)
   }
-  return (res.status === 204 ? undefined : await res.json()) as T
+  return (res.status === 204 ? undefined : await readJson<T>(res)) as T
 }
 
 const qs = (p: Record<string, string | undefined>) => {

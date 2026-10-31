@@ -37,14 +37,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Retry transient failures; only an explicit 401 means the session is gone.
   const q = useQuery({
     queryKey: ['me', userId, token], queryFn: api.me, enabled: !!(userId || token),
-    retry: (n, e) => !(e instanceof ApiError && e.status === 401) && n < 2,
+    // A 401 and a malformed (HTML) answer will not improve on retry; transient failures might.
+    retry: (n, e) => !(e instanceof ApiError && (e.status === 401 || e.code === 'invalid_response')) && n < 2,
   })
   const unauthenticated = q.error instanceof ApiError && q.error.status === 401
   useEffect(() => {
     if (!unauthenticated) return
-    if (token) setError('That mentor token was not accepted.')
+    setError(token ? 'That mentor token was not accepted.' : 'That demo sign-in was not accepted.')
     setMentorToken(null); setToken(null); write(null); setUserId(null)
   }, [unauthenticated, token])
+
+  // Any other failure to establish who the user is (wrong API address, server down) must not leave a silent, stuck page.
+  const signInFailed = q.isError && !q.data && !unauthenticated
+  useEffect(() => {
+    if (!signInFailed) return
+    setError(q.error instanceof ApiError ? q.error.message : 'Could not sign in: the server did not answer. Check your connection and try again.')
+    setMentorToken(null); setToken(null); write(null); setUserId(null)
+  }, [signInFailed, q.error])
 
   const signIn = useCallback((id: string) => { setError(null); setMentorToken(null); setToken(null); write(id); setUserId(id) }, [])
   const signInWithToken = useCallback((t: string) => { setError(null); write(null); setUserId(null); setMentorToken(t.trim()); setToken(t.trim()) }, [])

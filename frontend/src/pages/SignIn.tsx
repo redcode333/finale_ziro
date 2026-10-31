@@ -1,17 +1,18 @@
-import { ShieldCheck, UserRound } from 'lucide-react'
+import { ShieldCheck, TriangleAlert, UserRound } from 'lucide-react'
 import { useEffect, useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { liveConfigured, mentorLogin } from '@/api/live'
-import { ApiError } from '@/api/errors'
 import { useAuth } from '@/auth/AuthContext'
 import TurnstileWidget from '@/components/common/TurnstileWidget'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
+import { adminSignInMode, contributorSignInAvailable, signInErrorMessage } from '@/lib/signInErrors'
 import { mockUsers } from '@/mocks/store'
 import type { Role } from '@/types'
 
 const TURNSTILE_SITE_KEY = (import.meta.env.VITE_TURNSTILE_SITE_KEY as string | undefined) ?? ''
+const MOCKS_ON = import.meta.env.VITE_USE_MOCKS === 'true'
 
 const CARDS: { role: Role; title: string; blurb: string; cta: string; icon: typeof ShieldCheck }[] = [
   { role: 'ADMIN', title: 'Admin', icon: ShieldCheck, cta: 'Continue to Admin Sign-in',
@@ -19,6 +20,17 @@ const CARDS: { role: Role; title: string; blurb: string; cta: string; icon: type
   { role: 'CONTRIBUTOR', title: 'Contributor', icon: UserRound, cta: 'Continue to Contributor Sign-in',
     blurb: 'View assigned work, update tasks, submit standups, raise blockers and track personal progress.' },
 ]
+
+function NotAvailable({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <Card role="alert">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2"><TriangleAlert className="size-4 text-warning" aria-hidden /> {title}</CardTitle>
+        <CardDescription>{children}</CardDescription>
+      </CardHeader>
+    </Card>
+  )
+}
 
 // The selected card is only a navigation preference. The backend /me response decides which portal opens.
 export default function SignIn() {
@@ -40,9 +52,12 @@ export default function SignIn() {
     else navigate(roles.includes('ADMIN') ? '/admin' : '/contributor', { replace: true })
   }, [me, wanted, navigate, rolesFor])
 
-  const useToken = wanted === 'ADMIN' && liveConfigured && !demo
-  // Contributors have no login on the live backend yet, so they always use the demo identities.
-  const showDemo = wanted !== null && !useToken
+  // What this build can actually offer. A form that cannot work is replaced by an explanation of how to fix the deployment.
+  const adminMode = adminSignInMode({ liveConfigured, mocksOn: MOCKS_ON, wantsDemo: demo })
+  const useToken = wanted === 'ADMIN' && adminMode === 'live'
+  const showDemo = (wanted === 'ADMIN' && adminMode === 'demo') || (wanted === 'CONTRIBUTOR' && contributorSignInAvailable(MOCKS_ON))
+  const adminUnavailable = wanted === 'ADMIN' && adminMode === 'unavailable'
+  const contributorUnavailable = wanted === 'CONTRIBUTOR' && !contributorSignInAvailable(MOCKS_ON)
 
   // The backend verifies the Turnstile token before it checks the mentor token. Whatever the outcome, the token is spent,
   // so a failed attempt always asks the widget for a fresh one.
@@ -54,7 +69,7 @@ export default function SignIn() {
       await mentorLogin(token, human)
       signInWithToken(token)
     } catch (err) {
-      setFormError(err instanceof ApiError ? err.message : 'Could not reach the server. Check your connection and try again.')
+      setFormError(signInErrorMessage(err, { turnstileSiteKey: TURNSTILE_SITE_KEY }))
       setHuman(null); setResetSignal((n) => n + 1)
     } finally {
       setBusy(false)
@@ -89,6 +104,19 @@ export default function SignIn() {
 
       {error && <p role="alert" className="rounded-lg border border-critical/40 bg-critical/10 p-2.5 text-sm text-critical">{error}</p>}
 
+      {adminUnavailable && (
+        <NotAvailable title="Admin sign-in is not set up on this site">
+          This build has no live API address (VITE_LIVE_API_URL) and demo mode is off (VITE_USE_MOCKS), so there is nothing to sign in to.
+          Ask the site owner to set them and redeploy.
+        </NotAvailable>
+      )}
+
+      {contributorUnavailable && (
+        <NotAvailable title="Contributor sign-in is not available on this site">
+          Contributors exist only in demo mode, and the live backend has no contributor login yet. Demo mode is off in this build.
+        </NotAvailable>
+      )}
+
       {useToken && (
         <Card>
           <CardHeader>
@@ -105,9 +133,11 @@ export default function SignIn() {
               {TURNSTILE_SITE_KEY && <TurnstileWidget siteKey={TURNSTILE_SITE_KEY} action="mentor_login" onToken={setHuman} resetSignal={resetSignal} />}
               {formError && <p role="alert" className="rounded-lg border border-critical/40 bg-critical/10 p-2.5 text-sm text-critical">{formError}</p>}
             </form>
-            <button type="button" onClick={() => setDemo(true)} className="mt-3 text-xs text-muted-foreground underline-offset-2 hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none">
-              Use demo data instead
-            </button>
+            {MOCKS_ON && (
+              <button type="button" onClick={() => setDemo(true)} className="mt-3 text-xs text-muted-foreground underline-offset-2 hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none">
+                Use demo data instead
+              </button>
+            )}
           </CardContent>
         </Card>
       )}
@@ -117,7 +147,7 @@ export default function SignIn() {
           <CardHeader>
             <CardTitle>Demo sign-in</CardTitle>
             <CardDescription>
-              Development only: pick a demo identity; everything uses mock data.
+              Pick a demo identity; everything uses mock data.
               {liveConfigured && wanted === 'CONTRIBUTOR' && ' Contributor sign-in is not available on the live backend yet.'}
             </CardDescription>
           </CardHeader>
