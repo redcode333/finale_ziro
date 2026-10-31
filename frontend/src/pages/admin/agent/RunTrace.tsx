@@ -16,6 +16,7 @@ const OUTCOME: Record<LlmAttempt['outcome'], { label: string; tone: Tone }> = {
   server_error: { label: 'server error', tone: 'warning' },
   invalid_schema: { label: 'invalid output', tone: 'critical' },
   auth_error: { label: 'auth error', tone: 'critical' },
+  config_error: { label: 'config error', tone: 'critical' },
 }
 
 function ToolCalls({ calls }: { calls: ToolCall[] }) {
@@ -41,16 +42,16 @@ function ToolCalls({ calls }: { calls: ToolCall[] }) {
                 <td className="px-2 py-1.5 font-mono text-xs whitespace-nowrap">{fmtTime(c.started_at)}</td>
                 <td className="px-2 py-1.5 font-mono text-xs">{c.tool_name}</td>
                 <td className="px-2 py-1.5 text-xs">
-                  {c.operation}
+                  {c.operation ?? <span className="text-muted-foreground">not recorded</span>}
                   {c.error && <span className="mt-0.5 block text-critical">{c.error}</span>}
                 </td>
                 <td className="px-2 py-1.5 whitespace-nowrap">
                   <ToneBadge tone={c.status === 'success' ? 'success' : 'critical'}>{c.status === 'success' ? 'Success' : 'Failed'}{c.http_status ? ` · ${c.http_status}` : ''}</ToneBadge>
-                  {c.retries > 0 && <span className="ml-1 text-xs text-muted-foreground">{c.retries} retries</span>}
+                  {(c.retries ?? 0) > 0 && <span className="ml-1 text-xs text-muted-foreground">{c.retries} retries</span>}
                 </td>
                 <td className="px-2 py-1.5 font-mono text-xs whitespace-nowrap">{fmtDuration(c.latency_ms)}</td>
                 <td className="px-2 py-1.5 font-mono text-xs">{c.result_count ?? 'unknown'}</td>
-                <td className="px-2 py-1.5 text-xs text-muted-foreground">{c.scope}</td>
+                <td className="px-2 py-1.5 text-xs text-muted-foreground">{c.scope ?? '—'}</td>
               </tr>
             ))}
           </tbody>
@@ -67,7 +68,7 @@ function LlmCards({ calls }: { calls: LlmCall[] }) {
       {calls.map((c) => (
         <li key={c.llm_call_id} className="space-y-2 rounded-lg border border-border p-3 text-sm">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <p className="font-medium">{PURPOSE[c.purpose]} <span className="font-mono text-xs font-normal text-muted-foreground">{c.llm_call_id} · {fmtTime(c.started_at)}</span></p>
+            <p className="font-medium">{PURPOSE[c.purpose]} <span className="font-mono text-xs font-normal text-muted-foreground">{c.llm_call_id}{c.started_at ? ` · ${fmtTime(c.started_at)}` : ''}</span></p>
             <div className="flex flex-wrap gap-1.5">
               {c.fallback_reason && <ToneBadge tone="warning">Fallback: {c.fallback_reason.replaceAll('_', ' ')}</ToneBadge>}
               <ToneBadge tone={c.status === 'success' ? 'success' : 'critical'}>{c.status === 'success' ? 'Answered' : 'Failed'}</ToneBadge>

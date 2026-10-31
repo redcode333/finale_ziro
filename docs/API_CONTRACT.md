@@ -200,6 +200,7 @@ Delimited CSV fields (`;`) become arrays in the API.
 
 - `attempts` lists every try in order, so the UI can show the primary-to-fallback chain. `fallback_reason` is set when the answering provider differs from the primary.
 - `tokens_*` are `null` when the provider did not report usage. Never estimate or invent them.
+- **Backend (implemented):** `tool-calls` reads `tool_call_logs`; `llm-calls` regroups the router's per-attempt log in `agent_runs.llm_calls`. Both are mentor-token authenticated and team-scoped (401 / 403 / 404). Values the backend does not record are `null`, never estimated: `operation`, `scope`, `retries` and `http_status` on tool calls; `tokens_in`/`tokens_out` and, on runs from before the change, `started_at` on LLM calls. `attempts[].outcome` also includes `config_error` (missing key or HTTP 400/404). `llm_call_id` is derived as `{run_id}-LLM-{nn}`, `latency_ms` is the sum of attempt latencies, and `schema_valid` is true only when a provider answered with validated output. Tool-call `started_at` needs migration `003_tool_call_started_at.sql`. **Not implemented:** pagination (`next_cursor` is always `null` and every row is returned) and role checks (any authenticated mentor of the run's team may read; there is no separate ADMIN role).
 - Both endpoints are polled while the run is active and must reflect rows as they are logged. The mock returns a labeled sample (`source_label: "synthetic"`), which the UI marks "Sample trace".
 
 ### Sprint re-plan

@@ -390,14 +390,15 @@ export interface ToolCall {
   tool_call_id: string
   run_id: string
   tool_name: string
-  operation: string
+  // operation, retries and scope are null when the backend did not record them.
+  operation: string | null
   status: 'success' | 'failed'
   http_status: number | null
   latency_ms: number
-  retries: number
+  retries: number | null
   // Rows or events returned. Null when the call failed (unknown, never zero).
   result_count: number | null
-  scope: string
+  scope: string | null
   started_at: string
   error: string | null
   source_label: SourceLabel
@@ -406,14 +407,14 @@ export interface ToolCall {
 export interface LlmAttempt {
   provider: string
   model: string
-  outcome: 'success' | 'timeout' | 'rate_limited' | 'server_error' | 'invalid_schema' | 'auth_error'
+  outcome: 'success' | 'timeout' | 'rate_limited' | 'server_error' | 'invalid_schema' | 'auth_error' | 'config_error'
   latency_ms: number
 }
 export interface LlmCall {
   llm_call_id: string
   run_id: string
   purpose: 'planner' | 'assessor' | 'report_writer'
-  started_at: string
+  started_at: string | null
   final_provider: string | null
   final_model: string | null
   status: 'success' | 'failed'
