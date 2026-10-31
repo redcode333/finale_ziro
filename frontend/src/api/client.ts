@@ -1,5 +1,5 @@
 import type {
-  AgentEvent, AgentRun, ApiErrorBody, Claim, AppNotification, AuditEvent, Blocker, BlockerInput, ReplanRequest, ReplanResult, StandupStatus, GithubConnection, GithubScope, Invitation, Standup, StandupInput, Dashboard, DecisionRequest,
+  AgentEvent, AgentRun, ApiErrorBody, Claim, AppNotification, AuditEvent, Blocker, BlockerInput, LlmCall, ToolCall, ReplanRequest, ReplanResult, StandupStatus, GithubConnection, GithubScope, Invitation, Standup, StandupInput, Dashboard, DecisionRequest,
   EvidenceRecord, EvaluationResults, Me, Member, Page, Recommendation, SimulationResult, Sprint, Task, WeeklyReport,
 } from '@/types'
 
@@ -65,6 +65,8 @@ export const api = {
   run: (runId: string) => request<AgentRun>(`/agent-runs/${runId}`),
   runEvents: (runId: string, after?: string) =>
     request<Page<AgentEvent>>(`/agent-runs/${runId}/events${qs({ after })}`),
+  toolCalls: (runId: string) => request<Page<ToolCall>>(`/agent-runs/${runId}/tool-calls`),
+  llmCalls: (runId: string) => request<Page<LlmCall>>(`/agent-runs/${runId}/llm-calls`),
   runControl: (runId: string, action: 'pause' | 'resume' | 'stop' | 'retry') =>
     post<AgentRun>(`/agent-runs/${runId}/${action}`),
 

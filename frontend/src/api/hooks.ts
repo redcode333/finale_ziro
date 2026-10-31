@@ -221,3 +221,8 @@ export function useRequestReplan() {
     onError: (e) => toast.error(errMsg(e)),
   })
 }
+
+export const useToolCalls = (runId?: string, active = true) =>
+  useQuery({ queryKey: ['tool-calls', runId], queryFn: () => api.toolCalls(runId!), enabled: !!runId, select: (d) => d.items, refetchInterval: active ? POLL_MS : false })
+export const useLlmCalls = (runId?: string, active = true) =>
+  useQuery({ queryKey: ['llm-calls', runId], queryFn: () => api.llmCalls(runId!), enabled: !!runId, select: (d) => d.items, refetchInterval: active ? POLL_MS : false })

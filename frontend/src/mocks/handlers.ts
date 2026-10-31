@@ -1,5 +1,6 @@
 import { delay, http, HttpResponse } from 'msw'
 import { remind, standupStatus } from './participation'
+import { llmCallsFor, toolCallsFor } from './trace'
 import { requestReplan } from './replan'
 import { claimsFor } from './claims'
 import { blockers, emptyGithub, githubLinks, invitations, once, standups } from './contributor'
@@ -112,6 +113,18 @@ export const handlers = [
     const after = new URL(request.url).searchParams.get('after') ?? undefined
     const events = getEvents(String(params.id), after)
     return events ? HttpResponse.json(page(events)) : fail(404, 'not_found', 'Run not found')
+  }),
+  http.get('/agent-runs/:id/tool-calls', ({ request, params }) => {
+    const denied = adminOnly(request)
+    if (denied) return denied
+    const calls = toolCallsFor(String(params.id))
+    return calls ? HttpResponse.json(page(calls)) : fail(404, 'not_found', 'Run not found')
+  }),
+  http.get('/agent-runs/:id/llm-calls', ({ request, params }) => {
+    const denied = adminOnly(request)
+    if (denied) return denied
+    const calls = llmCallsFor(String(params.id))
+    return calls ? HttpResponse.json(page(calls)) : fail(404, 'not_found', 'Run not found')
   }),
   http.post('/agent-runs/:id/:action', ({ request, params }) => {
     const denied = adminOnly(request)

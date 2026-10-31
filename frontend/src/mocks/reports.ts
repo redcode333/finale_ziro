@@ -7,6 +7,8 @@ const cases = dataset.tables.evaluation_cases as unknown as Record<string, strin
 // Built only from stored records: counts and links, no invented narrative.
 let summary: ReportSummary | null = null
 
+export const reportSummary = () => summary
+
 export function weeklyReport(): WeeklyReport {
   const count = (s: string) => tasks.filter((t) => t.status === s).length
   return {
