@@ -1,0 +1,18 @@
+# Applies to builds whose context is the repo root (the frontend image). The backend has its own ./backend/.dockerignore.
+.git
+.gitignore
+**/node_modules
+**/dist
+**/.venv
+**/__pycache__
+**/.env
+**/.env.*
+!**/.env.example
+
+# Not needed by the frontend build.
+backend
+docs
+*.pdf
+*.zip
+data/synthetic_dataset/*
+!data/synthetic_dataset/dataset.json

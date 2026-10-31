@@ -52,7 +52,7 @@ const contractApi = {
     post<{ created: boolean }>('/standups/reminders', b),
   requestReplan: (sprintId: string, b: ReplanRequest) => post<ReplanResult>(`/sprints/${sprintId}/replan`, b),
   startRun: (b: { team_id: string; sprint_id: string; command?: string }) =>
-    post<{ run_id: string }>('/agents/analyze', b),
+    post<{ run_id: string; existing?: boolean }>('/agents/analyze', b),
   runs: (teamId: string) => request<Page<AgentRun>>(`/agent-runs${qs({ team_id: teamId })}`),
   run: (runId: string) => request<AgentRun>(`/agent-runs/${runId}`),
   runEvents: (runId: string, after?: string) =>

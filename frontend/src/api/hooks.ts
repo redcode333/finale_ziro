@@ -38,16 +38,18 @@ export const useRecommendationEvidence = (id?: string) =>
 export const useAuditEvents = () =>
   useQuery({ queryKey: ['audit'], queryFn: () => api.auditEvents(), select: (d) => d.items, refetchInterval: POLL_MS })
 
-const errMsg = (e: unknown) => (e instanceof ApiError ? e.message : 'Something went wrong. Please try again.')
+const errMsg = (e: unknown) =>
+  e instanceof ApiError ? e.message : e instanceof TypeError ? 'Could not reach the server. Check your connection and try again.' : 'Something went wrong. Please try again.'
 
 export function useStartRun(teamId: string, onStarted: (runId: string) => void) {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (b: { sprint_id: string; command?: string }) => api.startRun({ team_id: teamId, ...b }),
-    onSuccess: ({ run_id }) => {
+    onSuccess: ({ run_id, existing }) => {
       qc.invalidateQueries({ queryKey: ['runs'] })
       onStarted(run_id)
-      toast.success(`Analysis ${run_id} started`)
+      if (existing) toast.info('This sprint was already analyzed. Showing that run.')
+      else toast.success('Analysis started')
     },
     onError: (e) => toast.error(errMsg(e)),
   })
