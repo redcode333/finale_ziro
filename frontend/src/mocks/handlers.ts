@@ -1,4 +1,5 @@
 import { delay, http, HttpResponse } from 'msw'
+import { evaluationResults, runEvaluations, simulate, weeklyReport } from './reports'
 import {
   ADMIN_ID, TEAM_ID, approvals, auditEvents, controlRun, dashboardFor, decide, evidence, getEvents, getRun,
   getRuns, members, mockUsers, notifications, publicRec, retryExecution, risks, settle, sprints, startRun, tasks,
@@ -116,6 +117,21 @@ export const handlers = [
     const id = new URL(request.url).searchParams.get('entity_id')
     live()
     return HttpResponse.json(page(auditEvents.filter((a) => !id || a.target_id === id).slice().reverse()))
+  }),
+  http.get('/reports/weekly', ({ request }) => adminOnly(request) ?? HttpResponse.json(weeklyReport())),
+  http.post('/evaluations/run', async ({ request }) => {
+    const denied = adminOnly(request)
+    if (denied) return denied
+    await delay(600)
+    return HttpResponse.json(runEvaluations())
+  }),
+  http.get('/evaluations/results', ({ request }) => adminOnly(request) ?? HttpResponse.json(evaluationResults())),
+  http.post('/reliability/simulate/:scenario', async ({ request, params }) => {
+    const denied = adminOnly(request)
+    if (denied) return denied
+    await delay(700)
+    const r = simulate(String(params.scenario))
+    return r ? HttpResponse.json(r) : fail(404, 'unknown_scenario', 'Unknown scenario')
   }),
   http.get('/notifications', ({ request }) => {
     const u = userOf(request)

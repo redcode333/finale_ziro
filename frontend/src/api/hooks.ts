@@ -91,3 +91,19 @@ export function useRetryApproval() {
     onError: (e) => toast.error(errMsg(e)),
   })
 }
+
+export const useWeeklyReport = (teamId: string) =>
+  useQuery({ queryKey: ['weekly-report', teamId], queryFn: () => api.weeklyReport(teamId), enabled: !!teamId })
+export const useEvaluationResults = () => useQuery({ queryKey: ['evaluations'], queryFn: api.evaluationResults })
+export function useRunEvaluations() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: api.runEvaluations,
+    onSuccess: (d) => qc.setQueryData(['evaluations'], d),
+    onError: (e) => toast.error(errMsg(e)),
+  })
+}
+export const useSimulate = () =>
+  useMutation({ mutationFn: (scenario: string) => api.simulate(scenario), onError: (e) => toast.error(errMsg(e)) })
+export const useApprovals = (teamId: string) =>
+  useQuery({ queryKey: ['approvals', teamId], queryFn: () => api.approvals(teamId), enabled: !!teamId, select: (d) => d.items, refetchInterval: POLL_MS })

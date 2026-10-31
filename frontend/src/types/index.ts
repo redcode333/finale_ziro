@@ -205,3 +205,46 @@ export interface Page<T> {
   items: T[]
   next_cursor: string | null
 }
+
+export interface WeeklyReport {
+  team_id: string
+  sprint: Sprint
+  generated_at: string
+  basis: 'persisted_records'
+  progress: { total: number; done: number; in_progress: number; blocked: number; todo: number }
+  blockers: { task_id: string; title: string; assignee_id: string; dependency_task_ids: string[] }[]
+  discrepancies: RiskAssessment[]
+  contributions: {
+    member_id: string
+    name: string
+    evidence_by_type: Record<string, number>
+    hours_logged: number
+    tasks_done: number
+    note: string
+  }[]
+  recommendations: { recommendation_id: string; task_id: string; status: ApprovalStatus; summary: string }[]
+}
+
+export interface EvaluationCase {
+  case_id: string
+  scenario: string
+  expected_outcome: string
+  assertion: string
+  result: 'passed' | 'failed' | 'not_run'
+}
+export interface EvaluationResults {
+  mode: 'mock' | 'live'
+  ran_at: string | null
+  cases: EvaluationCase[]
+  // Null until a real run computes them. Never invented.
+  metrics: Record<string, number | null>
+}
+
+export interface SimulationResult {
+  scenario: string
+  simulated: true
+  title: string
+  steps: { label: string; status: 'ok' | 'warn' | 'blocked' | 'failed'; detail: string }[]
+  outcome: string
+  assertions: { text: string; passed: boolean }[]
+}

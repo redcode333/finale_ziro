@@ -6,7 +6,10 @@ import AppShell, { type NavItem } from '@/layouts/AppShell'
 import ComingSoon from '@/pages/ComingSoon'
 import Denied from '@/pages/Denied'
 import SignIn from '@/pages/SignIn'
+import Approvals from '@/pages/admin/Approvals'
 import Overview from '@/pages/admin/Overview'
+import ReliabilityLab from '@/pages/admin/ReliabilityLab'
+import Reports from '@/pages/admin/Reports'
 import AgentCenter from '@/pages/admin/agent/AgentCenter'
 import { RequireRole } from '@/routes/Guards'
 
@@ -40,9 +43,9 @@ export default function App() {
           <Route path="team" element={stub('Team')} />
           <Route path="sprint" element={stub('Sprint')} />
           <Route path="agent" element={<AgentCenter />} />
-          <Route path="approvals" element={stub('Approvals')} />
-          <Route path="reports" element={stub('Weekly report')} />
-          <Route path="reliability" element={stub('Reliability Lab')} />
+          <Route path="approvals" element={<Approvals />} />
+          <Route path="reports" element={<Reports />} />
+          <Route path="reliability" element={<ReliabilityLab />} />
         </Route>
       </Route>
 

@@ -1,6 +1,6 @@
 import type {
   AgentEvent, AgentRun, ApiErrorBody, AppNotification, AuditEvent, Dashboard, DecisionRequest,
-  EvidenceRecord, Me, Member, Page, Recommendation, Sprint, Task,
+  EvidenceRecord, EvaluationResults, Me, Member, Page, Recommendation, SimulationResult, Sprint, Task, WeeklyReport,
 } from '@/types'
 
 const BASE_URL = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? ''
@@ -72,5 +72,9 @@ export const api = {
   retryApproval: (id: string) => post<Recommendation>(`/approvals/${id}/retry`),
   auditEvents: (entityId?: string) =>
     request<Page<AuditEvent>>(`/audit-events${qs({ entity_id: entityId })}`),
+  weeklyReport: (teamId: string) => request<WeeklyReport>(`/reports/weekly${qs({ team_id: teamId })}`),
+  runEvaluations: () => post<EvaluationResults>('/evaluations/run'),
+  evaluationResults: () => request<EvaluationResults>('/evaluations/results'),
+  simulate: (scenario: string) => post<SimulationResult>(`/reliability/simulate/${scenario}`),
   notifications: () => request<Page<AppNotification>>('/notifications'),
 }
