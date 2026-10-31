@@ -1,6 +1,6 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
-import { api, setAuthHeaderProvider } from '@/api/client'
+import { ApiError, api, setAuthHeaderProvider } from '@/api/client'
 import type { Me, Role } from '@/types'
 
 // Mock auth for early development. Production swaps this for Supabase Auth (bearer token);
@@ -28,10 +28,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   setAuthHeaderProvider(() => (userId ? { 'X-Mock-User': userId } : ({} as Record<string, string>)))
 
-  const q = useQuery({ queryKey: ['me', userId], queryFn: api.me, enabled: !!userId, retry: false })
+  // Retry transient failures; only an explicit 401 means the session is gone.
+  const q = useQuery({
+    queryKey: ['me', userId], queryFn: api.me, enabled: !!userId,
+    retry: (n, e) => !(e instanceof ApiError && e.status === 401) && n < 2,
+  })
+  const unauthenticated = q.error instanceof ApiError && q.error.status === 401
   useEffect(() => {
-    if (q.isError) { write(null); setUserId(null) }
-  }, [q.isError])
+    if (unauthenticated) { write(null); setUserId(null) }
+  }, [unauthenticated])
 
   const signIn = useCallback((id: string) => { write(id); setUserId(id) }, [])
   const signOut = useCallback(() => { write(null); setUserId(null); qc.clear() }, [qc])

@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import type { BlockerInput, DecisionRequest, Recommendation, StandupInput } from '@/types'
+import type { GithubScope, BlockerInput, DecisionRequest, Recommendation, StandupInput } from '@/types'
 import { ApiError, api } from './client'
 
 export const POLL_MS = 2000
@@ -162,6 +162,24 @@ export function useRevokeInvitation() {
   return useMutation({
     mutationFn: (id: string) => api.revokeInvitation(id),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['invitations'] }); toast.success('Invitation revoked') },
+    onError: (e) => toast.error(errMsg(e)),
+  })
+}
+
+export const useGithub = (scope: GithubScope) =>
+  useQuery({ queryKey: ['github', scope], queryFn: () => api.githubStatus(scope) })
+export function useGithubConnect(scope: GithubScope) {
+  return useMutation({
+    mutationFn: () => api.githubConnect({ scope, return_to: window.location.pathname }),
+    onSuccess: ({ authorize_url }) => window.location.assign(authorize_url),
+    onError: (e) => toast.error(errMsg(e)),
+  })
+}
+export function useGithubDisconnect(scope: GithubScope) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: () => api.githubDisconnect(scope),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['github'] }); toast.success('GitHub disconnected') },
     onError: (e) => toast.error(errMsg(e)),
   })
 }

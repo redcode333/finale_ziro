@@ -1,5 +1,5 @@
 import type {
-  AgentEvent, AgentRun, ApiErrorBody, AppNotification, AuditEvent, Blocker, BlockerInput, Invitation, Standup, StandupInput, Dashboard, DecisionRequest,
+  AgentEvent, AgentRun, ApiErrorBody, AppNotification, AuditEvent, Blocker, BlockerInput, GithubConnection, GithubScope, Invitation, Standup, StandupInput, Dashboard, DecisionRequest,
   EvidenceRecord, EvaluationResults, Me, Member, Page, Recommendation, SimulationResult, Sprint, Task, WeeklyReport,
 } from '@/types'
 
@@ -83,6 +83,11 @@ export const api = {
   invitations: (projectId: string) => request<Page<Invitation>>(`/projects/${projectId}/invitations`),
   invite: (projectId: string, b: { email: string }) => post<Invitation>(`/projects/${projectId}/invitations`, b),
   revokeInvitation: (id: string) => request<Invitation>(`/invitations/${id}`, { method: 'DELETE', idempotent: true }),
+  githubStatus: (scope: GithubScope) => request<GithubConnection>(`/integrations/github${qs({ scope })}`),
+  // The backend owns the OAuth exchange and token. The browser only follows the returned URL.
+  githubConnect: (b: { scope: GithubScope; return_to: string }) => post<{ authorize_url: string }>('/integrations/github/connect', b),
+  githubDisconnect: (scope: GithubScope) =>
+    request<GithubConnection>(`/integrations/github${qs({ scope })}`, { method: 'DELETE', idempotent: true }),
   weeklyReport: (teamId: string) => request<WeeklyReport>(`/reports/weekly${qs({ team_id: teamId })}`),
   runEvaluations: () => post<EvaluationResults>('/evaluations/run'),
   evaluationResults: () => request<EvaluationResults>('/evaluations/results'),

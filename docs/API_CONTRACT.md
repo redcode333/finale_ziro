@@ -184,6 +184,19 @@ Delimited CSV fields (`;`) become arrays in the API.
 - `POST /reliability/simulate/{scenario}` returns `{simulated: true, steps[], outcome, assertions[]}`. Scenarios: `unauthorized_reassignment`, `llm_timeout_fallback`, `both_llm_down`, `github_503`, `prompt_injection`, `duplicate_event`.
 - Event `status` for the "waiting for approval" event: the mock sends `running`; the UI renders it as amber Pending without a pulse. A distinct state would be cleaner.
 
+### GitHub connection (both portals)
+
+| Method | Path | Purpose |
+|--------|------|---------|
+| GET ★ | `/integrations/github?scope=project\|me` | `GithubConnection {scope, status: connected\|disconnected\|error, account_login, repository_url, connected_at, last_synced_at, error}`. `project` is admin-only (403 otherwise); `me` is the caller's own link |
+| POST ★ | `/integrations/github/connect` | Body `{scope, return_to}` returns `{authorize_url}`. The browser navigates to it |
+| DELETE ★ | `/integrations/github?scope=` | Disconnect |
+
+- The OAuth code exchange happens in the **backend callback**; the token is stored server-side only and never reaches the browser.
+- `return_to` must be a same-origin relative path. The backend validates it (reject `//host` and absolute URLs) and redirects to `{return_to}?github=connected|cancelled|error`; the frontend shows a toast and refetches.
+- Not connecting a personal GitHub account must never be treated as inactivity.
+- The mock serves a development-only consent page at `/mock/github-consent` (registered only when `VITE_USE_MOCKS=true`).
+
 ## 10. Sign-off
 
 - [ ] Person 1 (frontend)

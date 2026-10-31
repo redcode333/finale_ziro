@@ -1,5 +1,5 @@
 import { delay, http, HttpResponse } from 'msw'
-import { blockers, invitations, once, standups } from './contributor'
+import { blockers, emptyGithub, githubLinks, invitations, once, standups } from './contributor'
 import { evaluationResults, runEvaluations, simulate, weeklyReport } from './reports'
 import {
   ADMIN_ID, TEAM_ID, approvals, auditEvents, controlRun, dashboardFor, decide, evidence, getEvents, getRun,
@@ -224,6 +224,47 @@ export const handlers = [
     if (inv.status !== 'pending') return fail(409, 'not_pending', 'Only pending invitations can be revoked.')
     inv.status = 'revoked'
     return HttpResponse.json(inv)
+  }),
+  http.get('/integrations/github', ({ request }) => {
+    const u = userOf(request)
+    if (!u) return fail(401, 'unauthenticated', 'Sign in required')
+    const scope = new URL(request.url).searchParams.get('scope') === 'project' ? 'project' : 'me'
+    if (scope === 'project' && !isAdmin(request)) return fail(403, 'forbidden', 'Admin role required')
+    return HttpResponse.json(githubLinks.get(scope === 'project' ? 'project' : u.user_id) ?? emptyGithub(scope))
+  }),
+  http.post('/integrations/github/connect', async ({ request }) => {
+    const u = userOf(request)
+    if (!u) return fail(401, 'unauthenticated', 'Sign in required')
+    const b = (await request.json()) as { scope: 'project' | 'me'; return_to: string }
+    if (b.scope === 'project' && !isAdmin(request)) return fail(403, 'forbidden', 'Admin role required')
+    // Only same-origin relative paths are allowed as return targets (open-redirect guard).
+    const back = b.return_to?.startsWith('/') && !b.return_to.startsWith('//') ? b.return_to : '/'
+    const q = new URLSearchParams({ scope: b.scope, return_to: back })
+    return HttpResponse.json({ authorize_url: `/mock/github-consent?${q}` })
+  }),
+  http.post('/__mock/github/complete', async ({ request }) => {
+    const u = userOf(request)
+    if (!u) return fail(401, 'unauthenticated', 'Sign in required')
+    const b = (await request.json()) as { scope: 'project' | 'me'; outcome: 'authorize' | 'cancel' }
+    if (b.scope === 'project' && !isAdmin(request)) return fail(403, 'forbidden', 'Admin role required')
+    if (b.outcome !== 'authorize') return HttpResponse.json({ ok: false })
+    const now = new Date().toISOString()
+    const member = members.find((m) => m.member_id === u.member_id)
+    githubLinks.set(b.scope === 'project' ? 'project' : u.user_id, {
+      scope: b.scope, status: 'connected',
+      account_login: b.scope === 'project' ? 'fairsprint-demo' : (member?.github_username ?? null),
+      repository_url: b.scope === 'project' ? 'https://github.com/fairsprint-demo/campus-connect' : null,
+      connected_at: now, last_synced_at: now, error: null,
+    })
+    return HttpResponse.json({ ok: true })
+  }),
+  http.delete('/integrations/github', ({ request }) => {
+    const u = userOf(request)
+    if (!u) return fail(401, 'unauthenticated', 'Sign in required')
+    const scope = new URL(request.url).searchParams.get('scope') === 'project' ? 'project' : 'me'
+    if (scope === 'project' && !isAdmin(request)) return fail(403, 'forbidden', 'Admin role required')
+    githubLinks.delete(scope === 'project' ? 'project' : u.user_id)
+    return HttpResponse.json(emptyGithub(scope))
   }),
   http.get('/reports/weekly', ({ request }) => adminOnly(request) ?? HttpResponse.json(weeklyReport())),
   http.post('/evaluations/run', async ({ request }) => {

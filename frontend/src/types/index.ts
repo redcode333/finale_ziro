@@ -292,3 +292,14 @@ export interface Invitation {
   created_at: string
   expires_at: string
 }
+
+export type GithubScope = 'project' | 'me'
+export interface GithubConnection {
+  scope: GithubScope
+  status: 'connected' | 'disconnected' | 'error'
+  account_login: string | null
+  repository_url: string | null
+  connected_at: string | null
+  last_synced_at: string | null
+  error: string | null
+}
