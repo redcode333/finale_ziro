@@ -1,0 +1,13 @@
+# Never ship secrets, local environments or tests in the image.
+.env
+.env.*
+!.env.example
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+tests/
+requirements-dev.txt
+README.md
+Dockerfile
+.dockerignore

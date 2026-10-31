@@ -33,6 +33,7 @@ Without a token the app runs entirely on mock data (`VITE_USE_MOCKS=true`).
 | Recommendations / approvals | `GET /approvals` ∪ run `approvals` + `replans` | `approved` → Completed (applied synchronously), `rejected` → Rejected |
 | Formal risk review | approval with `replan_id = null` | Shown as its own card type. It must be decided too, or the run never resumes |
 | Approve / reject | `POST /approvals/{id}/decision` | Modify is disabled (not supported) |
+| Standup participation | `GET /teams/{id}/standups`, `/members`, `/evidence` | Computed in the browser (`frontend/src/lib/participation.ts`) because the backend has no `standup-status` endpoint. Default day is the latest day with a standup. When the backend serves `GET /teams/{id}/standup-status`, the adapter should call it instead |
 | Weekly report | `GET /reports/weekly` | Backend `body` mapped to the report page; labelled "rule-based". 404 shows the backend's "no report yet" message |
 | Members, tasks, evidence | `GET /teams/{id}/members\|tasks\|evidence` | Evidence fields renamed (`evidence_id`→`id`, `occurred_at`→`observed_at`, …) |
 
@@ -44,7 +45,7 @@ Verified end to end against the real FastAPI app (real routes, schemas, LangGrap
 | Feature | What the backend would need |
 |---|---|
 | Claims vs evidence | `GET /teams/{id}/claims` (rules in `API_CONTRACT.md`); risk assessments are per member, not per claim |
-| Standup participation / reminders | `GET /teams/{id}/standup-status`, `POST /standups/reminders` |
+| Standup reminders | `POST /standups/reminders` (the UI disables the button in a live session) |
 | Re-plan trigger (mark unavailable) | `POST /sprints/{id}/replan` (the agent only proposes re-plans on its own runs) |
 | Team invitations, GitHub OAuth connect | `/projects/{id}/invitations`, `/integrations/github*` |
 | Reliability Lab, evaluations | `/reliability/simulate/*`, `/evaluations/*` |
@@ -79,3 +80,7 @@ Render environment variables (Web Service → Environment):
 In the Cloudflare dashboard create a Turnstile widget (Managed mode) whose allowed hostname is `finale-ziro-h79s.onrender.com`.
 Locally leave `TURNSTILE_ENABLED=false` and `VITE_TURNSTILE_SITE_KEY` empty. To try the real widget locally use Cloudflare's
 test keys, add `localhost` to `TURNSTILE_ALLOWED_HOSTNAMES` and set both keys in `backend/.env` and `frontend/.env.local`.
+
+## The Agent Center command bar
+
+The bar at the bottom only starts the sprint analysis (`POST /agents/analyze` takes a team and a sprint, no prompt). It has no text box, because typed text would be discarded. Pressing the button on a sprint that already has a run returns that run (the backend derives the run id from the request), and the UI says so.

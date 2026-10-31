@@ -1,0 +1,37 @@
+# FairSprint AI: backend + frontend.
+#   docker compose up --build
+# Frontend: http://localhost:8080   Backend API: http://localhost:8000 (docs at /docs)
+#
+# Requires backend/.env (copy backend/.env.example and fill it in). It is read at runtime and never baked into an image.
+name: fairsprint
+
+services:
+  backend:
+    build:
+      context: ./backend
+    env_file:
+      - ./backend/.env
+    environment:
+      # Compose overrides env_file: the container always listens on 8000 and accepts the origin the frontend is served from.
+      PORT: "8000"
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:8080,http://127.0.0.1:8080}
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+      args:
+        # Baked into the static bundle at build time. Must be a URL the BROWSER can reach.
+        VITE_USE_MOCKS: ${VITE_USE_MOCKS:-true}
+        VITE_LIVE_API_URL: ${VITE_LIVE_API_URL:-http://localhost:8000}
+        VITE_LIVE_TEAM_ID: ${VITE_LIVE_TEAM_ID:-team_fs_001}
+        VITE_LIVE_PROJECT_ID: ${VITE_LIVE_PROJECT_ID:-proj_fs_001}
+    ports:
+      - "8080:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
