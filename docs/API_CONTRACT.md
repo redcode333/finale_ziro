@@ -97,8 +97,12 @@ Allowed transitions: `pending_review → approved_execution_pending | rejected |
 | POST ★ | `/approvals/{id}/retry` | Retry execution after `failed` |
 | GET ★ | `/audit-events` | Audit log (`?entity_id=`), ADMIN |
 | GET ★ | `/notifications` | Own notifications |
-| POST ★ | `/blockers` · PATCH `/blockers/{id}` | Contributor blockers |
-| PATCH ★ | `/tasks/{id}` | Contributor updates own task status |
+| GET ★ | `/standups` | Own standups (contributor) or all (admin) |
+| GET ★ · POST ★ | `/blockers` | List (own for contributors) · raise `{task_id?, description}` |
+| PATCH ★ | `/blockers/{id}` | Resolve own blocker `{status: "resolved"}` |
+| PATCH ★ | `/tasks/{id}` | Contributor updates own task `{status}`. Any `assignee_id` in the body is rejected with 403 (reassignment is approval-only) |
+
+**Server-side scoping (contributors):** `/teams/{id}/tasks`, `/evidence`, `/members` and `/standups` return only the caller's own records; `risks` in the dashboard are admin-only. `POST /standups` rejects claims on tasks the caller does not own (403) and is idempotent on `Idempotency-Key`.
 | POST ★ | `/projects/{id}/invitations` · POST `/invitations/{token}/accept` | Invitation flow (post-MVP) |
 
 Backend owns `PATCH /tasks/{id}/assignee` only as an internal mutation node; the UI changes owners exclusively via an approval decision.
@@ -170,7 +174,15 @@ Delimited CSV fields (`;`) become arrays in the API.
 3. Event cursor format and whether `GET /agent-runs/{id}` embeds the latest events.
 4. Where contributor-scoped AI assistance lives (post-MVP; no endpoint yet).
 
-## 9. Sign-off
+## 9. Added during frontend build (please review)
+
+- Contributor endpoints above (standups list, blockers list, task status PATCH) and the scoping rules.
+- `GET /reports/weekly` returns `{progress, blockers, discrepancies, contributions, recommendations, basis: "persisted_records"}`.
+- `POST /evaluations/run` and `GET /evaluations/results` return `{mode: "mock"|"live", cases[], metrics{}}`. Metrics are `null` until a real run computes them. The mock never marks a case as passed.
+- `POST /reliability/simulate/{scenario}` returns `{simulated: true, steps[], outcome, assertions[]}`. Scenarios: `unauthorized_reassignment`, `llm_timeout_fallback`, `both_llm_down`, `github_503`, `prompt_injection`, `duplicate_event`.
+- Event `status` for the "waiting for approval" event: the mock sends `running`; the UI renders it as amber Pending without a pulse. A distinct state would be cleaner.
+
+## 10. Sign-off
 
 - [ ] Person 1 (frontend)
 - [ ] Person 2 (backend)

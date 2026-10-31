@@ -1,0 +1,30 @@
+import dataset from '../../../data/synthetic_dataset/dataset.json'
+import type { Blocker, Standup } from '@/types'
+import { TEAM_ID } from './store'
+
+const rows = dataset.tables.standups as unknown as Record<string, string>[]
+
+export const standups: Standup[] = rows.map((s) => ({
+  standup_id: s.standup_id, team_id: s.team_id, member_id: s.member_id, date: s.date,
+  yesterday: s.yesterday, today: s.today, blockers: s.blockers,
+  claimed_task_ids: (s.claimed_task_ids ?? '').split(';').filter(Boolean),
+  submitted_at: s.submitted_at, source_label: 'synthetic' as const,
+}))
+
+// Seed open blockers from standups that name one, so the page has real fixture data.
+export const blockers: Blocker[] = standups
+  .filter((s) => s.blockers && s.blockers.toLowerCase() !== 'none')
+  .map((s, i) => ({
+    blocker_id: `B${String(i + 1).padStart(3, '0')}`, team_id: TEAM_ID, member_id: s.member_id,
+    task_id: s.claimed_task_ids[0] ?? null, description: s.blockers, status: 'open' as const,
+    created_at: s.submitted_at, resolved_at: null,
+  }))
+
+// Idempotency-Key -> stored response, so a replayed submit never creates a duplicate.
+const seen = new Map<string, unknown>()
+export function once<T>(key: string | null, create: () => T): T {
+  if (key && seen.has(key)) return seen.get(key) as T
+  const v = create()
+  if (key) seen.set(key, v)
+  return v
+}

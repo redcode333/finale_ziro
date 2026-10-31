@@ -1,5 +1,5 @@
 import {
-  Activity, BarChart3, CheckSquare, ClipboardList, FlaskConical, Flag, LayoutDashboard, ListChecks, Target, Users,
+  Activity, BarChart3, CheckSquare, ClipboardList, FlaskConical, Flag, GitPullRequest, LayoutDashboard, ListChecks, Target, Users,
 } from 'lucide-react'
 import { Navigate, Route, Routes } from 'react-router-dom'
 import AppShell, { type NavItem } from '@/layouts/AppShell'
@@ -7,6 +7,11 @@ import ComingSoon from '@/pages/ComingSoon'
 import Denied from '@/pages/Denied'
 import SignIn from '@/pages/SignIn'
 import Approvals from '@/pages/admin/Approvals'
+import Blockers from '@/pages/contributor/Blockers'
+import DailyStandup from '@/pages/contributor/DailyStandup'
+import MyContributions from '@/pages/contributor/MyContributions'
+import MyDashboard from '@/pages/contributor/MyDashboard'
+import MyTasks from '@/pages/contributor/MyTasks'
 import Overview from '@/pages/admin/Overview'
 import ReliabilityLab from '@/pages/admin/ReliabilityLab'
 import Reports from '@/pages/admin/Reports'
@@ -26,6 +31,7 @@ const contributorNav: NavItem[] = [
   { to: '/contributor', label: 'My Dashboard', icon: LayoutDashboard, end: true },
   { to: '/contributor/tasks', label: 'My Tasks', icon: ListChecks },
   { to: '/contributor/standup', label: 'Daily Standup', icon: ClipboardList },
+  { to: '/contributor/contributions', label: 'My Contributions', icon: GitPullRequest },
   { to: '/contributor/blockers', label: 'Blockers', icon: Flag },
 ]
 
@@ -51,10 +57,11 @@ export default function App() {
 
       <Route element={<RequireRole role="CONTRIBUTOR" />}>
         <Route path="/contributor" element={<AppShell portal="Contributor portal" items={contributorNav} />}>
-          <Route index element={stub('My Dashboard')} />
-          <Route path="tasks" element={stub('My Tasks')} />
-          <Route path="standup" element={stub('Daily Standup')} />
-          <Route path="blockers" element={stub('Blockers')} />
+          <Route index element={<MyDashboard />} />
+          <Route path="tasks" element={<MyTasks />} />
+          <Route path="standup" element={<DailyStandup />} />
+          <Route path="contributions" element={<MyContributions />} />
+          <Route path="blockers" element={<Blockers />} />
         </Route>
       </Route>
 

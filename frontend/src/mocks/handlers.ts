@@ -1,4 +1,5 @@
 import { delay, http, HttpResponse } from 'msw'
+import { blockers, once, standups } from './contributor'
 import { evaluationResults, runEvaluations, simulate, weeklyReport } from './reports'
 import {
   ADMIN_ID, TEAM_ID, approvals, auditEvents, controlRun, dashboardFor, decide, evidence, getEvents, getRun,
@@ -38,15 +39,25 @@ export const handlers = [
       team_id: TEAM_ID,
       sprint: sprints[0],
       ...dashboardFor(),
-      risks: risks.filter((r) => r.risk_level !== 'none'),
+      risks: isAdmin(request) ? risks.filter((r) => r.risk_level !== 'none') : [],
     })
   }),
-  http.get('/teams/:teamId/members', () => HttpResponse.json(page(members))),
-  http.get('/teams/:teamId/tasks', () => HttpResponse.json(page(tasks))),
+  http.get('/teams/:teamId/members', ({ request }) => {
+    const u = userOf(request)
+    if (!u) return fail(401, 'unauthenticated', 'Sign in required')
+    return HttpResponse.json(page(isAdmin(request) ? members : members.filter((m) => m.member_id === u.member_id)))
+  }),
+  http.get('/teams/:teamId/tasks', ({ request }) => {
+    const u = userOf(request)
+    if (!u) return fail(401, 'unauthenticated', 'Sign in required')
+    return HttpResponse.json(page(isAdmin(request) ? tasks : tasks.filter((t) => t.assignee_id === u.member_id)))
+  }),
   http.get('/teams/:teamId/sprints', () => HttpResponse.json(page(sprints))),
   http.get('/teams/:teamId/evidence', ({ request }) => {
+    const me = userOf(request)
+    if (!me) return fail(401, 'unauthenticated', 'Sign in required')
     const u = new URL(request.url)
-    const m = u.searchParams.get('member_id')
+    const m = isAdmin(request) ? u.searchParams.get('member_id') : me.member_id
     const t = u.searchParams.get('task_id')
     return HttpResponse.json(page(evidence.filter((e) => (!m || e.member_id === m) && (!t || e.task_id === t))))
   }),
@@ -117,6 +128,72 @@ export const handlers = [
     const id = new URL(request.url).searchParams.get('entity_id')
     live()
     return HttpResponse.json(page(auditEvents.filter((a) => !id || a.target_id === id).slice().reverse()))
+  }),
+  http.get('/standups', ({ request }) => {
+    const u = userOf(request)
+    if (!u) return fail(401, 'unauthenticated', 'Sign in required')
+    return HttpResponse.json(page(standups.filter((x) => isAdmin(request) || x.member_id === u.member_id).slice().reverse()))
+  }),
+  http.post('/standups', async ({ request }) => {
+    const u = userOf(request)
+    if (!u?.member_id) return fail(403, 'forbidden', 'Only team members can submit standups')
+    const b = (await request.json()) as { yesterday: string; today: string; blockers: string; claimed_task_ids: string[] }
+    if (!b.yesterday?.trim() || !b.today?.trim()) return fail(422, 'invalid_standup', 'Yesterday and today are required.')
+    const mine = new Set(tasks.filter((t) => t.assignee_id === u.member_id).map((t) => t.task_id))
+    if (b.claimed_task_ids.some((id) => !mine.has(id))) return fail(403, 'forbidden', 'You can only claim your own tasks.')
+    await delay(250)
+    return HttpResponse.json(once(request.headers.get('idempotency-key'), () => {
+      const row = {
+        standup_id: `SU${String(standups.length + 1).padStart(3, '0')}`, team_id: TEAM_ID, member_id: u.member_id!,
+        date: new Date().toISOString().slice(0, 10), yesterday: b.yesterday, today: b.today, blockers: b.blockers || 'None',
+        claimed_task_ids: b.claimed_task_ids, submitted_at: new Date().toISOString(), source_label: 'synthetic' as const,
+      }
+      standups.push(row)
+      return row
+    }), { status: 201 })
+  }),
+  http.patch('/tasks/:id', async ({ request, params }) => {
+    const u = userOf(request)
+    if (!u) return fail(401, 'unauthenticated', 'Sign in required')
+    const task = tasks.find((t) => t.task_id === params.id)
+    if (!task) return fail(404, 'not_found', 'Task not found')
+    // Contributors may only update their own tasks; reassignment is never done here (approval-only).
+    if (!isAdmin(request) && task.assignee_id !== u.member_id) return fail(403, 'forbidden', 'You can only update your own tasks.')
+    const b = (await request.json()) as { status?: string; assignee_id?: string }
+    if (b.assignee_id !== undefined) return fail(403, 'forbidden', 'Assignee changes require an approved proposal.')
+    if (!['todo', 'in_progress', 'blocked', 'done'].includes(b.status ?? '')) return fail(422, 'invalid_status', 'Unknown status.')
+    task.status = b.status!
+    task.version += 1
+    return HttpResponse.json(task)
+  }),
+  http.get('/blockers', ({ request }) => {
+    const u = userOf(request)
+    if (!u) return fail(401, 'unauthenticated', 'Sign in required')
+    return HttpResponse.json(page(blockers.filter((x) => isAdmin(request) || x.member_id === u.member_id)))
+  }),
+  http.post('/blockers', async ({ request }) => {
+    const u = userOf(request)
+    if (!u?.member_id) return fail(403, 'forbidden', 'Only team members can raise blockers')
+    const b = (await request.json()) as { task_id: string | null; description: string }
+    if (!b.description?.trim()) return fail(422, 'invalid_blocker', 'Describe the blocker.')
+    return HttpResponse.json(once(request.headers.get('idempotency-key'), () => {
+      const row = {
+        blocker_id: `B${String(blockers.length + 1).padStart(3, '0')}`, team_id: TEAM_ID, member_id: u.member_id!,
+        task_id: b.task_id, description: b.description, status: 'open' as const, created_at: new Date().toISOString(), resolved_at: null,
+      }
+      blockers.push(row)
+      return row
+    }), { status: 201 })
+  }),
+  http.patch('/blockers/:id', ({ request, params }) => {
+    const u = userOf(request)
+    const b = blockers.find((x) => x.blocker_id === params.id)
+    if (!u) return fail(401, 'unauthenticated', 'Sign in required')
+    if (!b) return fail(404, 'not_found', 'Blocker not found')
+    if (!isAdmin(request) && b.member_id !== u.member_id) return fail(403, 'forbidden', 'You can only update your own blockers.')
+    b.status = 'resolved'
+    b.resolved_at = new Date().toISOString()
+    return HttpResponse.json(b)
   }),
   http.get('/reports/weekly', ({ request }) => adminOnly(request) ?? HttpResponse.json(weeklyReport())),
   http.post('/evaluations/run', async ({ request }) => {

@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import type { DecisionRequest, Recommendation } from '@/types'
+import type { BlockerInput, DecisionRequest, Recommendation, StandupInput } from '@/types'
 import { ApiError, api } from './client'
 
 export const POLL_MS = 2000
@@ -107,3 +107,42 @@ export const useSimulate = () =>
   useMutation({ mutationFn: (scenario: string) => api.simulate(scenario), onError: (e) => toast.error(errMsg(e)) })
 export const useApprovals = (teamId: string) =>
   useQuery({ queryKey: ['approvals', teamId], queryFn: () => api.approvals(teamId), enabled: !!teamId, select: (d) => d.items, refetchInterval: POLL_MS })
+
+export const useMyEvidence = (teamId: string, memberId: string | null) =>
+  useQuery({ queryKey: ['evidence', teamId, memberId], queryFn: () => api.evidence(teamId, { member_id: memberId ?? undefined }), enabled: !!teamId && !!memberId, select: (d) => d.items })
+export const useStandups = (teamId: string) =>
+  useQuery({ queryKey: ['standups', teamId], queryFn: () => api.standups(teamId), enabled: !!teamId, select: (d) => d.items })
+export function useSubmitStandup() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (b: StandupInput) => api.submitStandup(b),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['standups'] }); toast.success('Standup submitted') },
+    onError: (e) => toast.error(errMsg(e)),
+  })
+}
+export function useUpdateTask() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, status }: { id: string; status: string }) => api.updateTask(id, { status }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['tasks'] }); toast.success('Task updated') },
+    onError: (e) => toast.error(errMsg(e)),
+  })
+}
+export const useBlockers = (teamId: string) =>
+  useQuery({ queryKey: ['blockers', teamId], queryFn: () => api.blockers(teamId), enabled: !!teamId, select: (d) => d.items })
+export function useRaiseBlocker() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (b: BlockerInput) => api.raiseBlocker(b),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['blockers'] }); toast.success('Blocker raised') },
+    onError: (e) => toast.error(errMsg(e)),
+  })
+}
+export function useResolveBlocker() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: string) => api.resolveBlocker(id),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['blockers'] }); toast.success('Blocker resolved') },
+    onError: (e) => toast.error(errMsg(e)),
+  })
+}

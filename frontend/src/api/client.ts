@@ -1,5 +1,5 @@
 import type {
-  AgentEvent, AgentRun, ApiErrorBody, AppNotification, AuditEvent, Dashboard, DecisionRequest,
+  AgentEvent, AgentRun, ApiErrorBody, AppNotification, AuditEvent, Blocker, BlockerInput, Standup, StandupInput, Dashboard, DecisionRequest,
   EvidenceRecord, EvaluationResults, Me, Member, Page, Recommendation, SimulationResult, Sprint, Task, WeeklyReport,
 } from '@/types'
 
@@ -72,6 +72,14 @@ export const api = {
   retryApproval: (id: string) => post<Recommendation>(`/approvals/${id}/retry`),
   auditEvents: (entityId?: string) =>
     request<Page<AuditEvent>>(`/audit-events${qs({ entity_id: entityId })}`),
+  standups: (teamId: string) => request<Page<Standup>>(`/standups${qs({ team_id: teamId })}`),
+  submitStandup: (b: StandupInput) => post<Standup>('/standups', b),
+  updateTask: (id: string, b: { status: string }) =>
+    request<Task>(`/tasks/${id}`, { method: 'PATCH', body: JSON.stringify(b), idempotent: true }),
+  blockers: (teamId: string) => request<Page<Blocker>>(`/blockers${qs({ team_id: teamId })}`),
+  raiseBlocker: (b: BlockerInput) => post<Blocker>('/blockers', b),
+  resolveBlocker: (id: string) =>
+    request<Blocker>(`/blockers/${id}`, { method: 'PATCH', body: JSON.stringify({ status: 'resolved' }), idempotent: true }),
   weeklyReport: (teamId: string) => request<WeeklyReport>(`/reports/weekly${qs({ team_id: teamId })}`),
   runEvaluations: () => post<EvaluationResults>('/evaluations/run'),
   evaluationResults: () => request<EvaluationResults>('/evaluations/results'),

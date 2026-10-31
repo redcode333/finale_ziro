@@ -248,3 +248,36 @@ export interface SimulationResult {
   outcome: string
   assertions: { text: string; passed: boolean }[]
 }
+
+export interface Standup {
+  standup_id: string
+  team_id: string
+  member_id: string
+  date: string
+  yesterday: string
+  today: string
+  blockers: string
+  claimed_task_ids: string[]
+  submitted_at: string
+  source_label: SourceLabel
+}
+export interface StandupInput {
+  yesterday: string
+  today: string
+  blockers: string
+  claimed_task_ids: string[]
+}
+export interface Blocker {
+  blocker_id: string
+  team_id: string
+  member_id: string
+  task_id: string | null
+  description: string
+  status: 'open' | 'resolved'
+  created_at: string
+  resolved_at: string | null
+}
+export interface BlockerInput {
+  task_id: string | null
+  description: string
+}
