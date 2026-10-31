@@ -4,6 +4,7 @@ import {
 } from '@/api/hooks'
 import { useAuth } from '@/auth/AuthContext'
 import type { AgentEvent } from '@/types'
+import StandupParticipation from '../StandupParticipation'
 import AgentCommandBar from './AgentCommandBar'
 import AgentHeader from './AgentHeader'
 import AgentInsightsPanel from './AgentInsightsPanel'
@@ -63,6 +64,7 @@ export default function AgentCenter() {
       <AgentHeader sprints={sprints} sprintId={sprintId} onSprintChange={setPickedSprint} run={run} busy={control.isPending}
         onControl={(a) => control.mutate(a)} />
       <AgentMetrics kpis={dashboard?.kpis} onSelect={onMetric} />
+      <StandupParticipation teamId={teamId} />
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_340px]">
         <div className="min-w-0 space-y-4">

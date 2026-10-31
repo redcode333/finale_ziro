@@ -333,3 +333,24 @@ export interface Claim {
   matched_evidence: EvidenceRecord[]
   source_label: SourceLabel
 }
+
+export type ParticipationState = 'submitted' | 'missing' | 'silent' | 'unavailable'
+export interface ParticipationMember {
+  member_id: string
+  state: ParticipationState
+  submitted_at: string | null
+  // Consecutive days (ending on `date`) without a standup. 0 when submitted.
+  missed_days: number
+  // Other recorded signals on `date` (commits, reviews, worklogs...). Missing a standup is not inactivity.
+  other_activity: { id: string; source_type: EvidenceRecord['source_type']; title: string }[]
+  last_activity_at: string | null
+  reminder_sent: boolean
+}
+export interface StandupStatus {
+  date: string
+  min_date: string
+  max_date: string
+  expected: number
+  submitted: number
+  members: ParticipationMember[]
+}

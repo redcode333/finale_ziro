@@ -1,4 +1,5 @@
 import { delay, http, HttpResponse } from 'msw'
+import { remind, standupStatus } from './participation'
 import { claimsFor } from './claims'
 import { blockers, emptyGithub, githubLinks, invitations, once, standups } from './contributor'
 import { evaluationResults, generateSummary, runEvaluations, simulate, weeklyReport } from './reports'
@@ -63,6 +64,20 @@ export const handlers = [
     return HttpResponse.json(page(evidence.filter((e) => (!m || e.member_id === m) && (!t || e.task_id === t))))
   }),
 
+  http.get('/teams/:teamId/standup-status', ({ request }) => {
+    const denied = adminOnly(request)
+    if (denied) return denied
+    const date = new URL(request.url).searchParams.get('date') ?? undefined
+    if (date && !/^\d{4}-\d{2}-\d{2}$/.test(date)) return fail(422, 'invalid_date', 'Use YYYY-MM-DD.')
+    return HttpResponse.json(standupStatus(date))
+  }),
+  http.post('/standups/reminders', async ({ request }) => {
+    const denied = adminOnly(request)
+    if (denied) return denied
+    const b = (await request.json()) as { member_id: string; date: string }
+    if (!members.some((m) => m.member_id === b.member_id)) return fail(404, 'not_found', 'Member not found')
+    return HttpResponse.json(remind(b.member_id, b.date))
+  }),
   http.get('/teams/:teamId/claims', ({ request }) => {
     const denied = adminOnly(request)
     if (denied) return denied

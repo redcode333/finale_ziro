@@ -1,5 +1,5 @@
 import type {
-  AgentEvent, AgentRun, ApiErrorBody, Claim, AppNotification, AuditEvent, Blocker, BlockerInput, GithubConnection, GithubScope, Invitation, Standup, StandupInput, Dashboard, DecisionRequest,
+  AgentEvent, AgentRun, ApiErrorBody, Claim, AppNotification, AuditEvent, Blocker, BlockerInput, StandupStatus, GithubConnection, GithubScope, Invitation, Standup, StandupInput, Dashboard, DecisionRequest,
   EvidenceRecord, EvaluationResults, Me, Member, Page, Recommendation, SimulationResult, Sprint, Task, WeeklyReport,
 } from '@/types'
 
@@ -53,6 +53,11 @@ export const api = {
 
   claims: (teamId: string, memberId?: string) =>
     request<Page<Claim>>(`/teams/${teamId}/claims${qs({ member_id: memberId })}`),
+  standupStatus: (teamId: string, date?: string) =>
+    request<StandupStatus>(`/teams/${teamId}/standup-status${qs({ date })}`),
+  // Server dedupes per member + date, so a repeated click never sends a second reminder.
+  remind: (b: { member_id: string; date: string }) =>
+    post<{ created: boolean }>('/standups/reminders', b),
   startRun: (b: { team_id: string; sprint_id: string; command?: string }) =>
     post<{ run_id: string }>('/agents/analyze', b),
   runs: (teamId: string) => request<Page<AgentRun>>(`/agent-runs${qs({ team_id: teamId })}`),

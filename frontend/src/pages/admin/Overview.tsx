@@ -1,3 +1,4 @@
+import StandupParticipation from './StandupParticipation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useDashboard } from '@/api/hooks'
@@ -32,6 +33,7 @@ export default function Overview() {
               </Card>
             ))}
       </div>
+      <StandupParticipation teamId={teamId} />
     </section>
   )
 }

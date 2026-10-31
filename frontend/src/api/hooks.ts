@@ -194,3 +194,17 @@ export function useGenerateReport(teamId: string) {
 
 export const useClaims = (teamId: string) =>
   useQuery({ queryKey: ['claims', teamId], queryFn: () => api.claims(teamId), enabled: !!teamId, select: (d) => d.items })
+
+export const useStandupStatus = (teamId: string, date?: string) =>
+  useQuery({ queryKey: ['standup-status', teamId, date ?? 'default'], queryFn: () => api.standupStatus(teamId, date), enabled: !!teamId, refetchInterval: POLL_MS })
+export function useRemind(teamId: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (b: { member_id: string; date: string }) => api.remind(b),
+    onSuccess: (r) => {
+      qc.invalidateQueries({ queryKey: ['standup-status', teamId] })
+      toast.success(r.created ? 'Reminder sent' : 'A reminder was already sent for this day')
+    },
+    onError: (e) => toast.error(errMsg(e)),
+  })
+}

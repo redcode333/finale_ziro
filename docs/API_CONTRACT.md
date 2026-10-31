@@ -186,6 +186,18 @@ Delimited CSV fields (`;`) become arrays in the API.
 - `POST /reliability/simulate/{scenario}` returns `{simulated: true, steps[], outcome, assertions[]}`. Scenarios: `unauthorized_reassignment`, `llm_timeout_fallback`, `both_llm_down`, `github_503`, `prompt_injection`, `duplicate_event`.
 - Event `status` for the "waiting for approval" event: the mock sends `running`; the UI renders it as amber Pending without a pulse. A distinct state would be cleaner.
 
+### Standup participation (silent members)
+
+`GET /teams/{team_id}/standup-status?date=YYYY-MM-DD` (ADMIN; default today) returns
+`{date, min_date, max_date, expected, submitted, members: [{member_id, state: submitted|missing|silent|unavailable, submitted_at, missed_days, other_activity: [{id, source_type, title}], last_activity_at, reminder_sent}]}`.
+
+- Only a submitted standup counts as `submitted`. Other activity (commits, reviews, worklogs) is **context**, never a substitute.
+- `unavailable`: no standup and the member's availability is not `available`.
+- `silent`: `missed_days >= 2` consecutive days **and** no other recorded activity in that streak. Anything else without a standup is `missing`.
+- A missing or silent member is never described as inactive or a free-rider (dataset case E08: missing standup alone => `insufficient_evidence`).
+
+`POST /standups/reminders {member_id, date}` (ADMIN) returns `{created: boolean}`. Idempotent per member + day: a repeat returns `created: false` and sends no second notification (dataset case E16).
+
 ### Claims vs evidence
 
 `GET /teams/{team_id}/claims?member_id=` (ADMIN) returns `Page<Claim>`:
