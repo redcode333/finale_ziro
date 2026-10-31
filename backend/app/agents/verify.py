@@ -98,7 +98,10 @@ def verify_member(claim: dict, tasks_by_id: dict, evidence: list[dict]) -> dict:
 def classify(v: dict | None, member_id: str, llm: dict | None, valid_ids: set[str], unavailable_sources: list[str],
              has_standup: bool = True) -> dict:
     """Deterministic status from linked evidence and task state. The LLM is advisory: it supplies the explanation and a
-    flagged disagreement, but it can neither raise nor lower a status (a model opinion must not create false positives)."""
+    flagged disagreement, but it can neither raise nor lower a status (a model opinion must not create false positives).
+
+    `valid_ids` must be the ids of evidence owned by `member_id`: a model-cited id outside it is ignored, so one member's
+    assessment can never rest on a teammate's work."""
     missing = [f"Source unavailable: {s} (not evidence of zero contribution)" for s in unavailable_sources]
     llm_ids = [i for i in (llm or {}).get("evidence_ids", []) if i in valid_ids]
     note = ""

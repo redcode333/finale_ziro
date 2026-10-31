@@ -1,5 +1,6 @@
 """Read-only GitHub REST adapter (HTTPX). Raises GitHubError; never returns fabricated data."""
 import logging
+import re
 import time
 from typing import Any, Literal
 
@@ -17,13 +18,26 @@ class GitHubError(Exception):
         self.message = message
 
 
+_NAME = re.compile(r"^[A-Za-z0-9_.-]{1,100}$")  # GitHub owner / repository names
+
+
+def _positive_int(value: Any, what: str) -> int:
+    """A path segment built from data must be a real positive integer: never a string that could add path parts."""
+    if isinstance(value, bool) or not isinstance(value, int) or value < 1:
+        raise GitHubError("unavailable", f"Refusing to build a GitHub URL from an invalid {what}.")
+    return value
+
+
 class GitHubClient:
     def __init__(self, token: str, owner: str, repo: str, *, base_url: str = "https://api.github.com",
                  timeout: float = 10.0, max_retries: int = 2, max_pages: int = 3, per_page: int = 50,
                  max_rate_wait: float = 3.0, transport: httpx.BaseTransport | None = None):
         if not (token and owner and repo):
             raise GitHubError("config", "GITHUB_TOKEN, GITHUB_REPO_OWNER and GITHUB_REPO_NAME must all be set")
+        if not (_NAME.fullmatch(owner) and _NAME.fullmatch(repo)) or owner in (".", "..") or repo in (".", ".."):
+            raise GitHubError("config", "GITHUB_REPO_OWNER / GITHUB_REPO_NAME contain characters GitHub names cannot have")
         self.owner, self.repo = owner, repo
+        self._base = httpx.URL(base_url)
         self.max_retries, self.max_pages, self.per_page, self.max_rate_wait = max_retries, max_pages, per_page, max_rate_wait
         self.rate_limit_remaining: int | None = None
         self._http = httpx.Client(
@@ -74,6 +88,16 @@ class GitHubClient:
                 time.sleep(0.5 * (2 ** attempt))
         raise GitHubError("unavailable", f"GitHub unreachable after {self.max_retries + 1} attempts: {last}")
 
+    def _trusted_next(self, url: str | None) -> str | None:
+        """Follow a pagination link only if it stays on the same GitHub host and inside this repository: the request carries
+        our token, so a link pointing anywhere else must never be fetched."""
+        if not url:
+            return None
+        target = httpx.URL(url)
+        if (target.scheme, target.host, target.port) != (self._base.scheme, self._base.host, self._base.port)                 or not target.path.startswith(self._repo_path + "/"):
+            raise GitHubError("unavailable", "Refusing to follow an unexpected pagination link.")
+        return url
+
     def _paginate(self, path: str, params: dict | None = None) -> list[dict[str, Any]]:
         items: list[dict[str, Any]] = []
         url: str | None = path
@@ -84,7 +108,7 @@ class GitHubClient:
             if not isinstance(data, list):
                 raise GitHubError("unavailable", f"Expected a list from {path}")
             items.extend(data)
-            url = resp.links.get("next", {}).get("url")
+            url = self._trusted_next(resp.links.get("next", {}).get("url"))
             query = None  # the next URL already carries its query string
             if not url:
                 break
@@ -106,7 +130,7 @@ class GitHubClient:
         return self._paginate(f"{self._repo_path}/pulls", {"state": "all", "sort": "updated", "direction": "desc"})
 
     def pull_reviews(self, number: int) -> list[dict[str, Any]]:
-        return self._paginate(f"{self._repo_path}/pulls/{number}/reviews")
+        return self._paginate(f"{self._repo_path}/pulls/{_positive_int(number, 'pull request number')}/reviews")
 
     def issues(self, since: str) -> list[dict[str, Any]]:
         return self._paginate(f"{self._repo_path}/issues", {"state": "all", "since": since})

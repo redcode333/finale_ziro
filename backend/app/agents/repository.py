@@ -33,6 +33,14 @@ class Repo:
     def update(self, table: str, pk: str, pk_value: str, values: dict) -> None:
         self.db.table(table).update(values).eq(pk, pk_value).execute()
 
+    def update_if(self, table: str, pk: str, pk_value: str, values: dict, **expected: Any) -> bool:
+        """Compare-and-set: update the row only if every `expected` column still has that value (a single atomic
+        UPDATE ... WHERE). Returns whether a row changed, so concurrent writers cannot both win."""
+        q = self.db.table(table).update(values).eq(pk, pk_value)
+        for k, v in expected.items():
+            q = q.eq(k, v)
+        return bool(q.execute().data)
+
     # ---- runs ----
     def get_run(self, run_id: str) -> dict | None:
         return self.one("agent_runs", run_id=run_id)

@@ -1,6 +1,7 @@
 """In-memory stand-ins used by deterministic tests: a fake Supabase client and scripted LLM providers."""
 import json
 import re
+import threading
 from datetime import datetime, timezone
 
 from app.agents.llm import LLMError, LLMRouter, Provider
@@ -21,6 +22,7 @@ class FakeSupabase:
     def __init__(self):
         self.t: dict[str, dict] = {}
         self.fail_tables: set[str] = set()
+        self.lock = threading.RLock()  # each statement is atomic, like a single SQL UPDATE ... WHERE
 
     def table(self, name):
         return _Q(self, name)
@@ -43,6 +45,10 @@ class _Q:
     def update(self, values): self.op, self.values = "update", values; return self
 
     def execute(self):
+        with self.db.lock:
+            return self._execute()
+
+    def _execute(self):
         if self.name in self.db.fail_tables:
             raise RuntimeError(f"simulated Supabase failure on {self.name}")
         store = self.db.t.setdefault(self.name, {})
