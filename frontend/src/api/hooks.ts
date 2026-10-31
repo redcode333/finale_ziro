@@ -45,10 +45,11 @@ export function useStartRun(teamId: string, onStarted: (runId: string) => void) 
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (b: { sprint_id: string; command?: string }) => api.startRun({ team_id: teamId, ...b }),
-    onSuccess: ({ run_id }) => {
+    onSuccess: ({ run_id, existing }) => {
       qc.invalidateQueries({ queryKey: ['runs'] })
       onStarted(run_id)
-      toast.success(`Analysis ${run_id} started`)
+      if (existing) toast.info('This sprint was already analyzed. Showing that run.')
+      else toast.success('Analysis started')
     },
     onError: (e) => toast.error(errMsg(e)),
   })

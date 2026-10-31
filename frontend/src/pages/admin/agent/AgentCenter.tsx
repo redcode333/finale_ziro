@@ -78,7 +78,7 @@ export default function AgentCenter() {
       </div>
 
       <AgentCommandBar busy={start.isPending || live}
-        onSubmit={(command) => start.mutate({ sprint_id: sprintId, command })} />
+        onSubmit={() => start.mutate({ sprint_id: sprintId })} />
 
       <EventDetailDrawer event={openEvent} evidence={evidence ?? []} onClose={() => setOpenEvent(null)} />
       <ApprovalDrawer teamId={teamId} recId={reviewId} onClose={() => setReviewId(null)} onSwitch={setReviewId} />

@@ -1,4 +1,4 @@
-import MockOnlyNote from '@/components/common/MockOnlyNote'
+import { isLiveSession } from '@/api/live'
 import { Bell, ChevronLeft, ChevronRight } from 'lucide-react'
 import { useState } from 'react'
 import { useMembers, useRemind, useStandupStatus } from '@/api/hooks'
@@ -33,6 +33,7 @@ export default function StandupParticipation({ teamId }: { teamId: string }) {
   const { data, isPending, isError } = useStandupStatus(teamId, date)
   const { data: members } = useMembers(teamId)
   const remind = useRemind(teamId)
+  const live = isLiveSession()
 
   if (isError) return <p role="alert" className="text-sm text-critical">Could not load standup participation.</p>
 
@@ -59,7 +60,7 @@ export default function StandupParticipation({ teamId }: { teamId: string }) {
       <CardContent className="space-y-3">
         {isPending || !data ? <Skeleton className="h-24" /> : (
           <>
-            <MockOnlyNote what="Standup participation" />
+            {live && <p role="note" className="text-xs text-muted-foreground">Computed from the live standups and evidence. Reminders are not connected to the backend yet.</p>}
             <ul className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4" aria-live="polite">
               {data.members.map((m) => {
                 const st = STATE[m.state]
@@ -72,7 +73,7 @@ export default function StandupParticipation({ teamId }: { teamId: string }) {
                     </div>
                     <p className="text-xs text-muted-foreground">{activityLine(m)}</p>
                     {canRemind && (
-                      <Button size="xs" variant="outline" disabled={m.reminder_sent || remind.isPending}
+                      <Button size="xs" variant="outline" disabled={live || m.reminder_sent || remind.isPending} title={live ? 'Reminders are not available on the live backend yet' : undefined}
                         onClick={() => remind.mutate({ member_id: m.member_id, date: data.date })}>
                         <Bell aria-hidden /> {m.reminder_sent ? 'Reminder sent' : 'Send reminder'}
                       </Button>

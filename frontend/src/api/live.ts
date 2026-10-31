@@ -6,6 +6,7 @@ import type {
   Recommendation, ReplanImpact, ReportSummary, RiskAssessment, RunStage, RunStatus, Sprint, Task, ToolCall, WeeklyReport,
   DecisionRequest,
 } from '@/types'
+import { computeStandupStatus } from '@/lib/participation'
 import { ApiError } from './errors'
 
 const BASE = ((import.meta.env.VITE_LIVE_API_URL as string | undefined) ?? '').replace(/\/$/, '')
@@ -127,6 +128,7 @@ const mapTask = (t: RawTask): Task => ({
 const loadMembers = () => memo('members', 10_000, async () => (await lreq<RawList<Member>>(`/teams/${TEAM}/members?limit=500`)).items)
 const loadTasks = () => memo('tasks', 3_000, async () => (await lreq<RawList<RawTask>>(`/teams/${TEAM}/tasks?limit=500`)).items.map(mapTask))
 const loadEvidence = () => memo('evidence', 10_000, async () => (await lreq<RawList<RawEvidence>>(`/teams/${TEAM}/evidence?limit=500`)).items.map(mapEvidence))
+const loadStandups = () => memo('standups', 10_000, async () => (await lreq<RawList<{ member_id: string; date: string; submitted_at: string | null }>>(`/teams/${TEAM}/standups?limit=500`)).items)
 const loadDashboard = () => memo('dashboard', 1_500, () => lreq<RawDashboard>(`/teams/${TEAM}/dashboard`))
 const loadPending = () => memo('pending', 1_500, () => lreq<RawApproval[]>('/approvals'))
 
@@ -387,11 +389,26 @@ export const liveApi = {
     return page((await loadEvidence()).filter((e) => (!f.member_id || e.member_id === f.member_id) && (!f.task_id || e.task_id === f.task_id)))
   },
 
+  // The backend has no standup-status endpoint yet, so participation is computed here from its real standups, members and
+  // evidence with the same rules as the contract. The default day is the latest day with a standup (demo data is not "today").
+  async standupStatus(_team: string, date?: string) {
+    const [rows, members, evidence] = await Promise.all([loadStandups(), loadMembers(), loadEvidence()])
+    const dates = rows.map((r) => r.date).sort()
+    const today = new Date().toISOString().slice(0, 10)
+    const latest = dates.at(-1) ?? today
+    return computeStandupStatus({
+      standups: rows, members, evidence, date: date ?? latest, minDate: dates[0] ?? today, maxDate: latest > today ? latest : today,
+      reminded: () => false,
+    })
+  },
+  remind: async () => unsupported('Standup reminders'),
+
   async startRun(b: { team_id: string; sprint_id: string; command?: string }) {
-    const r = await lreq<{ run_id: string }>('/agents/analyze', { method: 'POST', body: JSON.stringify({ team_id: b.team_id, sprint_id: b.sprint_id || undefined, wait: false }) })
+    const r = await lreq<{ run_id: string; status: string }>('/agents/analyze', { method: 'POST', body: JSON.stringify({ team_id: b.team_id, sprint_id: b.sprint_id || undefined, wait: false }) })
     rememberRun(r.run_id)
     cache.clear()
-    return { run_id: r.run_id }
+    // A newly created run comes back as `running`. Anything else means the backend returned the run it already had.
+    return { run_id: r.run_id, existing: r.status !== 'running' }
   },
   async runs() {
     const r = await latestRun()
