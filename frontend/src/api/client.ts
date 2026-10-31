@@ -1,0 +1,76 @@
+import type {
+  AgentEvent, AgentRun, ApiErrorBody, AppNotification, AuditEvent, Dashboard, DecisionRequest,
+  EvidenceRecord, Me, Member, Page, Recommendation, Sprint, Task,
+} from '@/types'
+
+const BASE_URL = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? ''
+
+export class ApiError extends Error {
+  status: number
+  code: string
+  retryable: boolean
+  constructor(status: number, body?: ApiErrorBody['error']) {
+    super(body?.message ?? `Request failed (${status})`)
+    this.status = status
+    this.code = body?.code ?? 'unknown'
+    this.retryable = body?.retryable ?? status >= 500
+  }
+}
+
+// The auth layer registers a header provider so the client never imports React state.
+let getAuthHeaders: () => Record<string, string> = () => ({})
+export const setAuthHeaderProvider = (fn: typeof getAuthHeaders) => { getAuthHeaders = fn }
+
+async function request<T>(path: string, init: RequestInit & { idempotent?: boolean } = {}): Promise<T> {
+  const headers: Record<string, string> = { Accept: 'application/json', ...getAuthHeaders() }
+  if (init.body) headers['Content-Type'] = 'application/json'
+  if (init.idempotent) headers['Idempotency-Key'] = crypto.randomUUID()
+  const res = await fetch(`${BASE_URL}${path}`, { ...init, headers })
+  if (!res.ok) {
+    const body = (await res.json().catch(() => undefined)) as ApiErrorBody | undefined
+    throw new ApiError(res.status, body?.error)
+  }
+  return (res.status === 204 ? undefined : await res.json()) as T
+}
+
+const qs = (p: Record<string, string | undefined>) => {
+  const entries = Object.entries(p).filter(([, v]) => v) as [string, string][]
+  return entries.length ? `?${new URLSearchParams(entries)}` : ''
+}
+const post = <T>(path: string, body?: unknown) =>
+  request<T>(path, { method: 'POST', body: body ? JSON.stringify(body) : undefined, idempotent: true })
+
+// One function per contract endpoint. Components reach these only through hooks.
+export const api = {
+  health: () => request<{ status: string }>('/health'),
+  me: () => request<Me>('/me'),
+  dashboard: (teamId: string) => request<Dashboard>(`/teams/${teamId}/dashboard`),
+  members: (teamId: string) => request<Page<Member>>(`/teams/${teamId}/members`),
+  tasks: (teamId: string) => request<Page<Task>>(`/teams/${teamId}/tasks`),
+  sprints: (teamId: string) => request<Page<Sprint>>(`/teams/${teamId}/sprints`),
+  evidence: (teamId: string, f: { member_id?: string; task_id?: string } = {}) =>
+    request<Page<EvidenceRecord>>(`/teams/${teamId}/evidence${qs(f)}`),
+
+  startRun: (b: { team_id: string; sprint_id: string; command?: string }) =>
+    post<{ run_id: string }>('/agents/analyze', b),
+  runs: (teamId: string) => request<Page<AgentRun>>(`/agent-runs${qs({ team_id: teamId })}`),
+  run: (runId: string) => request<AgentRun>(`/agent-runs/${runId}`),
+  runEvents: (runId: string, after?: string) =>
+    request<Page<AgentEvent>>(`/agent-runs/${runId}/events${qs({ after })}`),
+  runControl: (runId: string, action: 'pause' | 'resume' | 'stop' | 'retry') =>
+    post<AgentRun>(`/agent-runs/${runId}/${action}`),
+
+  recommendations: (teamId: string) =>
+    request<Page<Recommendation>>(`/recommendations${qs({ team_id: teamId })}`),
+  recommendation: (id: string) => request<Recommendation>(`/recommendations/${id}`),
+  recommendationEvidence: (id: string) =>
+    request<Page<EvidenceRecord>>(`/recommendations/${id}/evidence`),
+
+  approvals: (teamId: string, status?: string) =>
+    request<Page<Recommendation>>(`/approvals${qs({ team_id: teamId, status })}`),
+  decide: (id: string, b: DecisionRequest) => post<Recommendation>(`/approvals/${id}/decision`, b),
+  retryApproval: (id: string) => post<Recommendation>(`/approvals/${id}/retry`),
+  auditEvents: (entityId?: string) =>
+    request<Page<AuditEvent>>(`/audit-events${qs({ entity_id: entityId })}`),
+  notifications: () => request<Page<AppNotification>>('/notifications'),
+}
