@@ -17,6 +17,7 @@ from app.agents import verify as V
 from app.agents.llm import LLMRouter, LLMUnavailable
 from app.agents.repository import Repo, now_iso
 from app.agents.state import AgentState
+from app.metrics import REGISTRY
 from app.schemas.agent import AssessmentBatch, ExecutionPlan
 from app.services.github_service import collect_activity
 
@@ -48,6 +49,11 @@ class Deps:
     today: Callable[[], date] = lambda: datetime.now(timezone.utc).date()
 
 
+def _tool_metric(tool: str, status: str, seconds: float) -> None:
+    REGISTRY.observe("tool_call_duration_seconds", seconds, tool=tool, status=status)
+    REGISTRY.inc("tool_calls_total", tool=tool, status=status)
+
+
 class Recorder:
     """Allowlisted, budgeted tool invocation with per-call timing and status logs."""
 
@@ -69,11 +75,13 @@ class Recorder:
         except Exception as exc:
             rec.update(status="error", latency_ms=int((time.monotonic() - t0) * 1000), result_count=0, error=str(exc)[:300])
             self.calls.append(rec)
+            _tool_metric(name, "error", time.monotonic() - t0)
             self.errors.append({"tool": name, "status": "error", "error": rec["error"]})
             raise
         status, err = status_of(result) if status_of else ("success", None)
         rec.update(status=status, latency_ms=int((time.monotonic() - t0) * 1000), result_count=count(result), error=err)
         self.calls.append(rec)
+        _tool_metric(name, status, time.monotonic() - t0)
         if err:
             self.errors.append({"tool": name, "status": status if status != "success" else "partial", "error": err})
         return result

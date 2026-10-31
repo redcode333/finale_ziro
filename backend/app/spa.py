@@ -9,7 +9,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
 
 # Unmatched paths under these prefixes are API typos and must stay a JSON 404, never the HTML app.
-API_PREFIXES = {"auth", "agents", "agent-runs", "approvals", "reports", "github", "teams", "health", "docs", "redoc", "openapi.json"}
+API_PREFIXES = {"auth", "agents", "agent-runs", "approvals", "reports", "github", "teams", "health", "metrics", "docs", "redoc", "openapi.json"}
 _NO_CACHE = {"Cache-Control": "no-cache"}
 _IMMUTABLE = {"Cache-Control": "public, max-age=31536000, immutable"}  # /assets/* filenames are content-hashed
 

@@ -7,7 +7,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.config import get_settings
 from app.errors import register_error_handlers
 from app.logging_config import setup_logging
-from app.routes import agents, auth, github, health, teams
+from app.metrics import MetricsMiddleware
+from app.routes import agents, auth, github, health, metrics, teams
 from app.spa import mount_spa
 
 settings = get_settings()
@@ -24,8 +25,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Added last so it is the outermost user middleware and times everything, including CORS handling.
+app.add_middleware(MetricsMiddleware)
+
 register_error_handlers(app)
 app.include_router(health.router)
+app.include_router(metrics.router)
 app.include_router(teams.router)
 app.include_router(github.router)
 app.include_router(agents.router)
