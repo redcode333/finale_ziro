@@ -2,7 +2,7 @@
 // already uses. Active only for a session that signed in with a mentor token; every other session keeps using the mock API.
 // Things the backend does not provide yet are NOT faked here: those calls stay on the mock API and the UI says so.
 import type {
-  AgentEvent, AgentRun, ApprovalStatus, Dashboard, EventCategory, EvidenceRecord, LlmAttempt, LlmCall, Me, Member, Page,
+  AgentEvent, AgentRun, ApprovalStatus, Dashboard, EventCategory, EvidenceRecord, LlmCall, Me, Member, Page,
   Recommendation, ReplanImpact, ReportSummary, RiskAssessment, RunStage, RunStatus, Sprint, Task, ToolCall, WeeklyReport,
   DecisionRequest,
 } from '@/types'
@@ -173,46 +173,6 @@ const TOOL_LABEL: Record<string, { title: string; op: (t: string) => string }> =
   'supabase.read_evidence': { title: 'Read stored evidence, worklogs and standups', op: () => `SELECT evidence WHERE team_id = ${TEAM}` },
   'github.collect_activity': { title: 'Collected GitHub activity', op: () => 'GET repository commits, pull requests, reviews and issues' },
 }
-const outcomeOf = (a: RawLlmCall): LlmAttempt['outcome'] => {
-  if (a.status === 'success') return 'success'
-  const e = (a.error ?? '').toLowerCase()
-  if (e.includes('invalid_output')) return 'invalid_schema'
-  if (e.startsWith('auth') || e.startsWith('config')) return 'auth_error'
-  if (e.includes('timeout')) return 'timeout'
-  if (e.includes('429')) return 'rate_limited'
-  return 'server_error'
-}
-
-function llmCalls(r: RawRun): LlmCall[] {
-  const groups = new Map<string, RawLlmCall[]>()
-  for (const c of r.llm_calls) groups.set(c.schema, [...(groups.get(c.schema) ?? []), c])
-  const purpose = (s: string): LlmCall['purpose'] => (s === 'ExecutionPlan' ? 'planner' : 'assessor')
-  const started = startedAt(r)
-  return [...groups.entries()].map(([schema, list], i) => {
-    const ok = [...list].reverse().find((c) => c.status === 'success')
-    return {
-      llm_call_id: `${r.run_id}-L${i + 1}`, run_id: r.run_id, purpose: purpose(schema), started_at: started,
-      final_provider: ok?.provider ?? null, final_model: ok?.model ?? null, status: ok ? 'success' : 'failed',
-      latency_ms: list.reduce((s, c) => s + (c.latency_ms ?? 0), 0),
-      attempts: list.map((c) => ({ provider: c.provider, model: c.model, outcome: outcomeOf(c), latency_ms: c.latency_ms ?? 0 })),
-      fallback_reason: ok?.fallback_reason ? (/timeout/i.test(ok.fallback_reason) ? 'primary_timeout' : 'primary_failed') : null,
-      schema_valid: !!ok, tokens_in: null, tokens_out: null, source_label: 'live' as const,
-    }
-  })
-}
-
-function toolCalls(r: RawRun): ToolCall[] {
-  return r.tool_calls.map((c) => {
-    const meta = TOOL_LABEL[c.tool_name]
-    return {
-      tool_call_id: c.tool_call_id, run_id: r.run_id, tool_name: c.tool_name, operation: meta ? meta.op(c.tool_name) : c.tool_name,
-      status: c.status === 'success' ? 'success' : c.status === 'error' ? 'failed' : 'partial', http_status: null, latency_ms: c.latency_ms ?? 0, retries: 0,
-      result_count: c.status === 'error' ? null : c.result_count, scope: `team: ${TEAM}`, started_at: c.created_at ?? c.called_at ?? startedAt(r),
-      error: c.error, source_label: c.source_label ?? 'live',
-    }
-  })
-}
-
 function events(r: RawRun): AgentEvent[] {
   const idx = phaseIdx(r)
   const out: AgentEvent[] = []
@@ -428,8 +388,9 @@ export const liveApi = {
   },
   async run(runId: string) { return mapRun(await loadRun(runId)) },
   async runEvents(runId: string) { return page(events(await loadRun(runId))) },
-  async toolCalls(runId: string) { return page(toolCalls(await loadRun(runId))) },
-  async llmCalls(runId: string) { return page(llmCalls(await loadRun(runId))) },
+  // Served by the backend (tool_call_logs and the persisted router log); fields it does not record come back null.
+  toolCalls: (runId: string) => lreq<Page<ToolCall>>(`/agent-runs/${runId}/tool-calls`),
+  llmCalls: (runId: string) => lreq<Page<LlmCall>>(`/agent-runs/${runId}/llm-calls`),
   runControl: async () => unsupported('Pause, resume, stop and retry'),
 
   async recommendations() { return page(await buildRecommendations()) },

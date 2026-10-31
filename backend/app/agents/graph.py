@@ -271,7 +271,7 @@ def build_graph(deps: Deps, checkpointer=None):
         label = "synthetic" if state.get("source_label") == "synthetic" else "live"
         if state.get("tool_calls"):
             repo.upsert("tool_call_logs", [{"tool_call_id": c["tool_call_id"], "run_id": state["run_id"], "team_id": state["team_id"],
-                                            "tool_name": c["tool_name"], "status": c["status"], "latency_ms": c.get("latency_ms"),
+                                            "tool_name": c["tool_name"], "status": c["status"], "latency_ms": c.get("latency_ms"), "started_at": c.get("called_at"),
                                             "result_count": c.get("result_count"), "error": c.get("error"), "source_label": label}
                                            for c in state["tool_calls"]], "tool_call_id")
         for f in state.get("injection_flags", []):

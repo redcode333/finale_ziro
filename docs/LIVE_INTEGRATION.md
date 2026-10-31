@@ -28,8 +28,8 @@ Without a token the app runs entirely on mock data (`VITE_USE_MOCKS=true`).
 | Start analysis | `POST /agents/analyze` `{team_id, sprint_id, wait:false}` | Run id is remembered locally |
 | Run status, stage | `GET /agent-runs/{id}` | `phase` → stage; `running`/`awaiting_approval`/`completed`/`failed` used as is |
 | Activity timeline | derived from run detail | See gaps: no events endpoint, no per-step timestamps |
-| Tool-call trace | `agent-runs/{id}.tool_calls` | `error` → failed, `partial` shown as Partial |
-| LLM trace | `agent-runs/{id}.llm_calls` | Attempt rows grouped by `schema` (ExecutionPlan → planner, AssessmentBatch → assessor); fallback shown when a later provider answered |
+| Tool-call trace | `GET /agent-runs/{id}/tool-calls` | Served by the backend. Fields it does not record (`operation`, `scope`, `retries`, `http_status`) arrive as null and show as "not recorded" |
+| LLM trace | `GET /agent-runs/{id}/llm-calls` | Served by the backend: every provider attempt in order, fallback reason, `schema_valid`; tokens are null (not captured) |
 | Recommendations / approvals | `GET /approvals` ∪ run `approvals` + `replans` | `approved` → Completed (applied synchronously), `rejected` → Rejected |
 | Formal risk review | approval with `replan_id = null` | Shown as its own card type. It must be decided too, or the run never resumes |
 | Approve / reject | `POST /approvals/{id}/decision` | Modify is disabled (not supported) |
@@ -55,7 +55,7 @@ Verified end to end against the real FastAPI app (real routes, schemas, LangGrap
 ## Findings for the backend owner
 
 1. **Team data is unauthenticated.** `GET /teams/{id}/dashboard|members|tasks|standups|evidence` and `GET /github/activity` take no bearer token and no team scope, unlike the agent routes. Anyone who can reach the API can read every member's email and standups. Add `get_current_mentor` + `require_team_scope`.
-2. **Run listing and timestamps.** There is no `GET /agent-runs?team_id=` (the UI recomputes the deterministic run id), and `RunSummary` has no `started_at`/`finished_at`, LLM calls have no timestamp, and tool calls only have `created_at`. A real timeline needs per-node events with timestamps.
+2. **Run listing and timeline.** There is no `GET /agent-runs?team_id=` (the UI recomputes the deterministic run id), `RunSummary` has no `started_at`/`finished_at`, and there is no events endpoint, so the timeline is derived from the run detail (`phase`, tool calls, LLM calls) without per-step timestamps. Tool and LLM traces now come from the new trace endpoints.
 3. **Idempotent analyze.** Repeating `POST /agents/analyze` returns the existing run (even a completed one), so a second "Analyze Sprint" click does nothing new. If a fresh run per click is wanted, accept a nonce or `as_of`.
 4. **Error envelope.** Errors are `{code, message, detail}`; the contract says `{error: {code, message, request_id, retryable}}`. The adapter handles the backend's shape; the contract should be updated to match.
 5. **Impact data.** The UI needs `impact` (before/after workload and checks) per proposal. The backend returns only `capacity_check`/`dependency_check` strings, so the adapter recomputes the arithmetic from members and tasks. Returning it from the backend would make the numbers authoritative.

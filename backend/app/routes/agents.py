@@ -8,7 +8,8 @@ from app.auth import Mentor, get_current_mentor, get_repo, require_team_scope
 from app.errors import NotFoundError
 from app.schemas.agent import (AgentRunDetail, AnalyzeRequest, ApprovalOut, DecisionRequest, DecisionResponse,
                                RiskAssessmentOut, RunSummary, WeeklyReport)
-from app.services import approval_service
+from app.schemas.trace import LlmCallPage, ToolCallPage
+from app.services import approval_service, trace_service
 
 router = APIRouter(tags=["agent"])
 CurrentMentor = Annotated[Mentor, Depends(get_current_mentor)]
@@ -59,6 +60,27 @@ def get_run(run_id: str, mentor: CurrentMentor, repo: RepoDep):
         assessments=[RiskAssessmentOut(**{k: a.get(k) for k in RiskAssessmentOut.model_fields}) for a in repo.select("risk_assessments", run_id=run_id)],
         replans=repo.select("sprint_replans", run_id=run_id), approvals=repo.select("approval_queue", run_id=run_id),
         tool_calls=repo.select("tool_call_logs", run_id=run_id) or state.get("tool_calls", []), llm_calls=run.get("llm_calls") or [])
+
+
+def _scoped_run(run_id: str, mentor: Mentor, repo: Repo) -> dict:
+    run = repo.get_run(run_id)
+    if not run:
+        raise NotFoundError(f"Run {run_id} not found")
+    require_team_scope(mentor, run["team_id"])
+    return run
+
+
+@router.get("/agent-runs/{run_id}/tool-calls", response_model=ToolCallPage,
+            description="Real tool operations logged for the run (tool_call_logs), oldest first. Unpersisted fields are null.")
+def run_tool_calls(run_id: str, mentor: CurrentMentor, repo: RepoDep):
+    return ToolCallPage(items=trace_service.tool_calls(repo, _scoped_run(run_id, mentor, repo)))
+
+
+@router.get("/agent-runs/{run_id}/llm-calls", response_model=LlmCallPage,
+            description="Model calls for the run with every provider attempt in order, regrouped from the persisted router log. "
+                        "Token counts are null: providers' usage is not captured.")
+def run_llm_calls(run_id: str, mentor: CurrentMentor, repo: RepoDep):
+    return LlmCallPage(items=trace_service.llm_calls(_scoped_run(run_id, mentor, repo)))
 
 
 @router.get("/approvals", response_model=list[ApprovalOut], description="Pending approvals for the authenticated mentor's team.")

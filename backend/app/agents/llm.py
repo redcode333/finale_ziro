@@ -7,6 +7,7 @@ import logging
 import re
 import time
 from dataclasses import dataclass, field
+from datetime import datetime, timezone
 from typing import Literal, TypeVar
 
 import httpx
@@ -136,7 +137,7 @@ class LLMRouter:
                 self._total += 1
                 t0 = time.monotonic()
                 rec = {"provider": prov.name, "model": prov.model, "attempt": attempt, "fallback_reason": fallback_reason,
-                       "schema": schema.__name__}
+                       "schema": schema.__name__, "started_at": datetime.now(timezone.utc).isoformat()}
                 try:
                     result = parse_structured(prov.complete(system_full, user), schema)
                     rec.update(status="success", latency_ms=int((time.monotonic() - t0) * 1000))
