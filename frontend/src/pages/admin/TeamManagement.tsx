@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useInvitations, useInvite, useMembers, useRevokeInvitation, useTasks } from '@/api/hooks'
+import { useInvitations, useInvite, useMembers, useRevokeInvitation, useSprints, useTasks } from '@/api/hooks'
 import { useAuth } from '@/auth/AuthContext'
 import CapacityBar from '@/components/common/CapacityBar'
 import { ToneBadge } from '@/components/common/StatusBadge'
@@ -10,6 +10,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { fmtTime } from '@/lib/status'
 import { workloadOf } from '@/lib/workload'
 import type { Invitation } from '@/types'
+import RequestReplanDialog from './replan/RequestReplanDialog'
 
 const INV_TONE = { pending: 'warning', accepted: 'success', revoked: 'neutral', expired: 'neutral' } as const
 
@@ -20,6 +21,8 @@ export default function TeamManagement() {
   const projectId = membership?.project_id ?? ''
   const { data: members, isPending } = useMembers(teamId)
   const { data: tasks } = useTasks(teamId)
+  const { data: sprints } = useSprints(teamId)
+  const activeSprint = sprints?.find((x) => x.status === 'active')?.sprint_id ?? sprints?.[0]?.sprint_id ?? ''
   const { data: invitations } = useInvitations(projectId)
   const invite = useInvite(projectId)
   const revoke = useRevokeInvitation()
@@ -45,7 +48,7 @@ export default function TeamManagement() {
           {isPending ? <Skeleton className="m-4 h-32" /> : (
             <table className="w-full text-left text-sm">
               <thead className="text-xs text-muted-foreground">
-                <tr>{['Member', 'Role and skills', 'Availability', 'Active / blocked', 'Capacity (open vs weekly)'].map((h) => <th key={h} scope="col" className="px-4 py-2 font-normal">{h}</th>)}</tr>
+                <tr>{['Member', 'Role and skills', 'Availability', 'Active / blocked', 'Capacity (open vs weekly)', ''].map((h) => <th key={h} scope="col" className="px-4 py-2 font-normal">{h}</th>)}</tr>
               </thead>
               <tbody>
                 {members!.map((m) => {
@@ -58,6 +61,9 @@ export default function TeamManagement() {
                       <td className="px-4 py-2"><ToneBadge tone={available ? 'success' : 'warning'}>{m.availability_status.replaceAll('_', ' ')}</ToneBadge></td>
                       <td className="px-4 py-2 font-mono">{w.active} / {w.blocked}</td>
                       <td className="min-w-40 px-4 py-2"><CapacityBar used={w.openHours} capacity={w.capacity} label={`Capacity for ${m.name}`} /></td>
+                      <td className="px-4 py-2 text-right">
+                        {available && activeSprint && <RequestReplanDialog teamId={teamId} sprintId={activeSprint} defaultMemberId={m.member_id} triggerLabel="Mark unavailable" />}
+                      </td>
                     </tr>
                   )
                 })}

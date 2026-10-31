@@ -186,6 +186,17 @@ Delimited CSV fields (`;`) become arrays in the API.
 - `POST /reliability/simulate/{scenario}` returns `{simulated: true, steps[], outcome, assertions[]}`. Scenarios: `unauthorized_reassignment`, `llm_timeout_fallback`, `both_llm_down`, `github_503`, `prompt_injection`, `duplicate_event`.
 - Event `status` for the "waiting for approval" event: the mock sends `running`; the UI renders it as amber Pending without a pulse. A distinct state would be cleaner.
 
+### Sprint re-plan
+
+`POST /sprints/{sprint_id}/replan` (ADMIN) body `{member_id, reason?}` returns `201 {proposals: Recommendation[], unassigned_task_ids: string[]}`.
+It marks the member unavailable and creates one `pending_review` proposal per open task of that member in the sprint. **Nothing is reassigned until a mentor approves.**
+
+- The candidate is chosen and validated **in code**: available teammates only, enough remaining weekly capacity, dependencies inspected. The model may only add wording.
+- Tasks with no eligible teammate are returned in `unassigned_task_ids` (never silently dropped).
+- Idempotent: the same member, task and reason never creates a second pending proposal.
+- Every `Recommendation` now carries `impact`: `{task_estimate_hours, from: OwnerImpact, to: OwnerImpact, checks: [{key: capacity|dependencies|evidence, status: pass|fail|conditional, detail}]}` where `OwnerImpact = {member_id, open_hours_before, open_hours_after, capacity_hours}`. The UI shows these as the before/after plan and as validation checks, and never recomputes them.
+- A proposal with a `fail` check is still shown (the mentor can modify it) but must be visibly flagged.
+
 ### Standup participation (silent members)
 
 `GET /teams/{team_id}/standup-status?date=YYYY-MM-DD` (ADMIN; default today) returns

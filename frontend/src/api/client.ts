@@ -1,5 +1,5 @@
 import type {
-  AgentEvent, AgentRun, ApiErrorBody, Claim, AppNotification, AuditEvent, Blocker, BlockerInput, StandupStatus, GithubConnection, GithubScope, Invitation, Standup, StandupInput, Dashboard, DecisionRequest,
+  AgentEvent, AgentRun, ApiErrorBody, Claim, AppNotification, AuditEvent, Blocker, BlockerInput, ReplanRequest, ReplanResult, StandupStatus, GithubConnection, GithubScope, Invitation, Standup, StandupInput, Dashboard, DecisionRequest,
   EvidenceRecord, EvaluationResults, Me, Member, Page, Recommendation, SimulationResult, Sprint, Task, WeeklyReport,
 } from '@/types'
 
@@ -58,6 +58,7 @@ export const api = {
   // Server dedupes per member + date, so a repeated click never sends a second reminder.
   remind: (b: { member_id: string; date: string }) =>
     post<{ created: boolean }>('/standups/reminders', b),
+  requestReplan: (sprintId: string, b: ReplanRequest) => post<ReplanResult>(`/sprints/${sprintId}/replan`, b),
   startRun: (b: { team_id: string; sprint_id: string; command?: string }) =>
     post<{ run_id: string }>('/agents/analyze', b),
   runs: (teamId: string) => request<Page<AgentRun>>(`/agent-runs${qs({ team_id: teamId })}`),

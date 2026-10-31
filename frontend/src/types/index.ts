@@ -96,7 +96,27 @@ export interface RiskAssessment {
   recommended_action: string
 }
 
+export interface ReplanCheck {
+  key: 'capacity' | 'dependencies' | 'evidence'
+  status: 'pass' | 'fail' | 'conditional'
+  detail: string
+}
+export interface OwnerImpact {
+  member_id: string
+  open_hours_before: number
+  open_hours_after: number
+  capacity_hours: number
+}
+// What the proposal does to workload, validated by code (not by the model) before it is shown.
+export interface ReplanImpact {
+  task_estimate_hours: number
+  from: OwnerImpact
+  to: OwnerImpact
+  checks: ReplanCheck[]
+}
+
 export interface Recommendation {
+  impact: ReplanImpact
   recommendation_id: string // shares ID with its approval
   approval_id: string
   run_id: string
@@ -353,4 +373,14 @@ export interface StandupStatus {
   expected: number
   submitted: number
   members: ParticipationMember[]
+}
+
+export interface ReplanRequest {
+  member_id: string
+  reason?: string
+}
+export interface ReplanResult {
+  proposals: Recommendation[]
+  // Open tasks with no eligible teammate under the capacity rules. They are listed, never silently dropped.
+  unassigned_task_ids: string[]
 }

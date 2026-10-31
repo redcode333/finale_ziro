@@ -1,5 +1,6 @@
 import { delay, http, HttpResponse } from 'msw'
 import { remind, standupStatus } from './participation'
+import { requestReplan } from './replan'
 import { claimsFor } from './claims'
 import { blockers, emptyGithub, githubLinks, invitations, once, standups } from './contributor'
 import { evaluationResults, generateSummary, runEvaluations, simulate, weeklyReport } from './reports'
@@ -64,6 +65,15 @@ export const handlers = [
     return HttpResponse.json(page(evidence.filter((e) => (!m || e.member_id === m) && (!t || e.task_id === t))))
   }),
 
+  http.post('/sprints/:id/replan', async ({ request, params }) => {
+    const denied = adminOnly(request)
+    if (denied) return denied
+    const b = (await request.json()) as { member_id: string; reason?: string }
+    if (!sprints.some((s) => s.sprint_id === params.id)) return fail(404, 'not_found', 'Sprint not found')
+    await delay(500)
+    const r = requestReplan(String(params.id), b.member_id, b.reason?.trim() || 'Member marked unavailable', userOf(request)!.user_id)
+    return r.ok ? HttpResponse.json({ proposals: r.proposals, unassigned_task_ids: r.unassigned_task_ids }, { status: 201 }) : fail(r.status, r.code, r.message)
+  }),
   http.get('/teams/:teamId/standup-status', ({ request }) => {
     const denied = adminOnly(request)
     if (denied) return denied

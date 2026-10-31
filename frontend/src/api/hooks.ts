@@ -208,3 +208,16 @@ export function useRemind(teamId: string) {
     onError: (e) => toast.error(errMsg(e)),
   })
 }
+
+export function useRequestReplan() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ sprintId, ...b }: { sprintId: string; member_id: string; reason?: string }) => api.requestReplan(sprintId, b),
+    onSuccess: (r) => {
+      for (const key of ['recommendations', 'approvals', 'members', 'tasks', 'dashboard', 'audit', 'standup-status']) qc.invalidateQueries({ queryKey: [key] })
+      const n = r.proposals.length
+      toast.success(n ? `${n} re-plan proposal${n > 1 ? 's' : ''} ready for review` : 'No new proposals were created')
+    },
+    onError: (e) => toast.error(errMsg(e)),
+  })
+}

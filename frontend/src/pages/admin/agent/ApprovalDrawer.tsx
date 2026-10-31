@@ -9,6 +9,7 @@ import { ApiError } from '@/api/client'
 import { approvalMeta, isActionable, isInFlight } from '@/lib/status'
 import { nameOf } from '@/lib/workload'
 import type { Recommendation } from '@/types'
+import ReplanChecks from '../replan/ReplanChecks'
 import { AssigneeSelector, AssignmentComparison, AuditTrail, EvidenceList, Section, TaskSummary } from './ApprovalSections'
 
 type Mode = 'review' | 'editing' | 'confirm-approve' | 'confirm-modify' | 'reject'
@@ -93,6 +94,8 @@ function DrawerBody({ teamId, rec, onSwitch }: { teamId: string; rec: Recommenda
         <Section title="Assignment comparison">
           <AssignmentComparison current={current} proposed={finalOwner} tasks={allTasks} edited={edited} />
         </Section>
+
+        <Section title="Validation checks"><ReplanChecks checks={rec.impact.checks} /></Section>
 
         {mode === 'editing' && (
           <Section title="Choose a different assignee">

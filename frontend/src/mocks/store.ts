@@ -82,7 +82,8 @@ export const auditEvents: AuditEvent[] = T.audit_events.map((a) => ({
   request_id: null,
 }))
 
-interface Internal extends Recommendation { stateSince: number }
+export interface InternalApproval extends Omit<Recommendation, 'impact'> { stateSince: number }
+type Internal = InternalApproval
 const replans = new Map(T.sprint_replans.map((r) => [String(r.replan_id), r]))
 
 export const approvals: Internal[] = T.approval_queue.map((a) => {
@@ -124,7 +125,7 @@ const shouldFail = () => {
 const EXECUTING_AFTER_MS = 1500
 const SETTLED_AFTER_MS = 3500
 
-function audit(actor: string, action: string, target: string, before: object, after: object, reason: string, run: string) {
+export function audit(actor: string, action: string, target: string, before: object, after: object, reason: string, run: string) {
   auditEvents.push({
     audit_event_id: `AU${String(auditEvents.length + 1).padStart(3, '0')}`,
     run_id: run, actor_id: actor, action, target_id: target,
@@ -207,7 +208,7 @@ export function retryExecution(id: string) {
   return a
 }
 
-export const publicRec = ({ stateSince: _s, ...rest }: Internal): Recommendation => rest
+export { withImpact as publicRec } from './replan'
 
 // ---- runs and events --------------------------------------------------------------------------
 interface Step { at: number; ms: number; category: AgentEvent['category']; title: string; tool: string | null; input: string; output: string; stage: AgentRun['stage']; ev?: string[] }

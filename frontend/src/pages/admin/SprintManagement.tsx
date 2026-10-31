@@ -10,6 +10,7 @@ import { Progress } from '@/components/ui/progress'
 import { Skeleton } from '@/components/ui/skeleton'
 import { workloadOf } from '@/lib/workload'
 import type { Task } from '@/types'
+import ReplanPanel from './replan/ReplanPanel'
 
 const COLUMNS: { key: string; label: string }[] = [
   { key: 'todo', label: 'To do' },
@@ -109,6 +110,8 @@ export default function SprintManagement() {
           })}
         </div>
       )}
+
+      <ReplanPanel teamId={teamId} sprintId={sprint.sprint_id} />
 
       <Card>
         <CardHeader><CardTitle>Workload distribution</CardTitle></CardHeader>
