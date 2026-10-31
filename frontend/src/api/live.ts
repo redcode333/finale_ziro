@@ -8,7 +8,7 @@ import type {
 } from '@/types'
 import { buildMentorLoginRequest } from '@/lib/turnstile'
 import { computeStandupStatus } from '@/lib/participation'
-import { ApiError } from './errors'
+import { ApiError, readJson } from './errors'
 
 const BASE = ((import.meta.env.VITE_LIVE_API_URL as string | undefined) ?? '').replace(/\/$/, '')
 export const liveConfigured = BASE !== ''
@@ -44,7 +44,7 @@ async function lreq<T>(path: string, init: RequestInit = {}): Promise<T> {
           Authorization: `Bearer ${getMentorToken() ?? ''}`,
         },
       })
-      if (res.ok) return (await res.json()) as T
+      if (res.ok) return await readJson<T>(res)
       if (read && res.status >= 500 && attempt < attempts) { await sleep(400); continue }
       const b = (await res.json().catch(() => undefined)) as { code?: string; message?: string } | undefined
       throw new ApiError(res.status, { code: b?.code ?? 'http_error', message: b?.message ?? `Request failed (${res.status})`, request_id: '', retryable: res.status >= 500 })
