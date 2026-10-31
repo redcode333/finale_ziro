@@ -15,6 +15,7 @@ import EventDetailDrawer from './EventDetailDrawer'
 import EvidenceExplorer from './EvidenceExplorer'
 import ExecutionTimeline from './ExecutionTimeline'
 import RecommendationPanel from './RecommendationPanel'
+import RunTrace from './RunTrace'
 
 const LIVE = ['queued', 'running']
 
@@ -70,6 +71,7 @@ export default function AgentCenter() {
         <div className="min-w-0 space-y-4">
           <CurrentExecutionCard run={run} />
           <ExecutionTimeline events={events} loading={!!runId && eventsLoading} onOpen={setOpenEvent} />
+          <RunTrace runId={runId} active={!settled} />
           <RecommendationPanel panelRef={recsRef} recs={recs} tasks={tasks} members={members} loading={recsLoading} onReview={setReviewId} />
         </div>
         <AgentInsightsPanel dashboard={dashboard} members={members} risksRef={risksRef} onReview={() => scrollTo(recsRef)} />

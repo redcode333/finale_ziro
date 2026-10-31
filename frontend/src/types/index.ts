@@ -384,3 +384,45 @@ export interface ReplanResult {
   // Open tasks with no eligible teammate under the capacity rules. They are listed, never silently dropped.
   unassigned_task_ids: string[]
 }
+
+// One real operation by an allowlisted tool adapter. A model call is not a tool call.
+export interface ToolCall {
+  tool_call_id: string
+  run_id: string
+  tool_name: string
+  operation: string
+  status: 'success' | 'failed'
+  http_status: number | null
+  latency_ms: number
+  retries: number
+  // Rows or events returned. Null when the call failed (unknown, never zero).
+  result_count: number | null
+  scope: string
+  started_at: string
+  error: string | null
+  source_label: SourceLabel
+}
+
+export interface LlmAttempt {
+  provider: string
+  model: string
+  outcome: 'success' | 'timeout' | 'rate_limited' | 'server_error' | 'invalid_schema' | 'auth_error'
+  latency_ms: number
+}
+export interface LlmCall {
+  llm_call_id: string
+  run_id: string
+  purpose: 'planner' | 'assessor' | 'report_writer'
+  started_at: string
+  final_provider: string | null
+  final_model: string | null
+  status: 'success' | 'failed'
+  latency_ms: number
+  attempts: LlmAttempt[]
+  fallback_reason: string | null
+  schema_valid: boolean
+  // Null when the provider did not report usage. Never invented.
+  tokens_in: number | null
+  tokens_out: number | null
+  source_label: SourceLabel
+}

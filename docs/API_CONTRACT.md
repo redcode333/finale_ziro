@@ -186,6 +186,22 @@ Delimited CSV fields (`;`) become arrays in the API.
 - `POST /reliability/simulate/{scenario}` returns `{simulated: true, steps[], outcome, assertions[]}`. Scenarios: `unauthorized_reassignment`, `llm_timeout_fallback`, `both_llm_down`, `github_503`, `prompt_injection`, `duplicate_event`.
 - Event `status` for the "waiting for approval" event: the mock sends `running`; the UI renders it as amber Pending without a pulse. A distinct state would be cleaner.
 
+### Run trace (tool calls and LLM calls)
+
+`GET /agent-runs/{run_id}/tool-calls` (ADMIN) returns `Page<ToolCall>`:
+`{tool_call_id, run_id, tool_name, operation, status: success|failed, http_status|null, latency_ms, retries, result_count|null, scope, started_at, error|null}`.
+
+- One row per real operation by an allowlisted adapter (GitHub, Supabase task query, Supabase worklog query, approval insert, optional n8n webhook). **A model call is not a tool call.**
+- `result_count` is `null` when the call failed (unknown, never `0`). A GitHub 503 is `failed` with `http_status: 503`, the retries used, and an `error` stating the source is unavailable, not empty.
+- Never include secrets or tokens in `operation` or `scope`.
+
+`GET /agent-runs/{run_id}/llm-calls` (ADMIN) returns `Page<LlmCall>`:
+`{llm_call_id, run_id, purpose: planner|assessor|report_writer, started_at, final_provider|null, final_model|null, status: success|failed, latency_ms, attempts: [{provider, model, outcome: success|timeout|rate_limited|server_error|invalid_schema|auth_error, latency_ms}], fallback_reason|null, schema_valid, tokens_in|null, tokens_out|null}`.
+
+- `attempts` lists every try in order, so the UI can show the primary-to-fallback chain. `fallback_reason` is set when the answering provider differs from the primary.
+- `tokens_*` are `null` when the provider did not report usage. Never estimate or invent them.
+- Both endpoints are polled while the run is active and must reflect rows as they are logged. The mock returns a labeled sample (`source_label: "synthetic"`), which the UI marks "Sample trace".
+
 ### Sprint re-plan
 
 `POST /sprints/{sprint_id}/replan` (ADMIN) body `{member_id, reason?}` returns `201 {proposals: Recommendation[], unassigned_task_ids: string[]}`.
