@@ -1,5 +1,5 @@
 import type {
-  AgentEvent, AgentRun, ApiErrorBody, AppNotification, AuditEvent, Blocker, BlockerInput, GithubConnection, GithubScope, Invitation, Standup, StandupInput, Dashboard, DecisionRequest,
+  AgentEvent, AgentRun, ApiErrorBody, Claim, AppNotification, AuditEvent, Blocker, BlockerInput, GithubConnection, GithubScope, Invitation, Standup, StandupInput, Dashboard, DecisionRequest,
   EvidenceRecord, EvaluationResults, Me, Member, Page, Recommendation, SimulationResult, Sprint, Task, WeeklyReport,
 } from '@/types'
 
@@ -51,6 +51,8 @@ export const api = {
   evidence: (teamId: string, f: { member_id?: string; task_id?: string } = {}) =>
     request<Page<EvidenceRecord>>(`/teams/${teamId}/evidence${qs(f)}`),
 
+  claims: (teamId: string, memberId?: string) =>
+    request<Page<Claim>>(`/teams/${teamId}/claims${qs({ member_id: memberId })}`),
   startRun: (b: { team_id: string; sprint_id: string; command?: string }) =>
     post<{ run_id: string }>('/agents/analyze', b),
   runs: (teamId: string) => request<Page<AgentRun>>(`/agent-runs${qs({ team_id: teamId })}`),

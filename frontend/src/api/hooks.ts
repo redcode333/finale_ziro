@@ -191,3 +191,6 @@ export function useGenerateReport(teamId: string) {
     onSuccess: (d) => { qc.setQueryData(['weekly-report', teamId], d); toast.success('Mentor summary written') },
   })
 }
+
+export const useClaims = (teamId: string) =>
+  useQuery({ queryKey: ['claims', teamId], queryFn: () => api.claims(teamId), enabled: !!teamId, select: (d) => d.items })

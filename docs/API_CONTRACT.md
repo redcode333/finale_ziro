@@ -186,6 +186,20 @@ Delimited CSV fields (`;`) become arrays in the API.
 - `POST /reliability/simulate/{scenario}` returns `{simulated: true, steps[], outcome, assertions[]}`. Scenarios: `unauthorized_reassignment`, `llm_timeout_fallback`, `both_llm_down`, `github_503`, `prompt_injection`, `duplicate_event`.
 - Event `status` for the "waiting for approval" event: the mock sends `running`; the UI renders it as amber Pending without a pulse. A distinct state would be cleaner.
 
+### Claims vs evidence
+
+`GET /teams/{team_id}/claims?member_id=` (ADMIN) returns `Page<Claim>`:
+`{claim_id, standup_id, member_id, task_id, task_title, task_owner_id, task_status, kind: "completed"|"worked_on", claim_text, claimed_at, verification: verified|partially_verified|unverified|insufficient_evidence, explanation, gaps: string[], matched_evidence: EvidenceRecord[]}`.
+
+One row per (standup, claimed task). The backend's **deterministic verifier** must produce `verification`; the LLM may only add wording. The mock uses these rules, which the real verifier should match or improve on:
+- Match by member + task. A standup that only announces unavailability is not a work claim.
+- Evidence is *substantive* unless it is an empty commit message, a zero-hour worklog, or a worklog saying no artifact exists.
+- Task not owned by the claimant, or no records at all: `insufficient_evidence` (never "no work").
+- Records exist but none substantive: `unverified`.
+- A completion claim on a task not marked done: at most `partially_verified`.
+- Otherwise artifact + worklog: `verified`; one of them: `partially_verified`.
+The UI always shows these as questions for the member, never as findings of misconduct.
+
 ### GitHub connection (both portals)
 
 | Method | Path | Purpose |

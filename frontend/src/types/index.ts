@@ -314,3 +314,22 @@ export interface GithubConnection {
   last_synced_at: string | null
   error: string | null
 }
+
+// One standup claim about one task, checked against stored evidence by deterministic rules.
+export interface Claim {
+  claim_id: string
+  standup_id: string
+  member_id: string
+  task_id: string
+  task_title: string
+  task_owner_id: string
+  task_status: string
+  kind: 'completed' | 'worked_on'
+  claim_text: string
+  claimed_at: string
+  verification: EvidenceStatus
+  explanation: string
+  gaps: string[]
+  matched_evidence: EvidenceRecord[]
+  source_label: SourceLabel
+}

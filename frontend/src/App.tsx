@@ -1,5 +1,5 @@
 import {
-  Activity, BarChart3, CheckSquare, ClipboardList, FlaskConical, Flag, GitPullRequest, Plug, Settings, LayoutDashboard, ListChecks, Target, Users,
+  Activity, BarChart3, SearchCheck, CheckSquare, ClipboardList, FlaskConical, Flag, GitPullRequest, Plug, Settings, LayoutDashboard, ListChecks, Target, Users,
 } from 'lucide-react'
 import { Navigate, Route, Routes } from 'react-router-dom'
 import AppShell, { type NavItem } from '@/layouts/AppShell'
@@ -16,6 +16,7 @@ import MyDashboard from '@/pages/contributor/MyDashboard'
 import MyTasks from '@/pages/contributor/MyTasks'
 import SprintManagement from '@/pages/admin/SprintManagement'
 import TeamManagement from '@/pages/admin/TeamManagement'
+import ClaimsEvidence from '@/pages/admin/ClaimsEvidence'
 import Overview from '@/pages/admin/Overview'
 import ReliabilityLab from '@/pages/admin/ReliabilityLab'
 import Reports from '@/pages/admin/Reports'
@@ -27,6 +28,7 @@ const adminNav: NavItem[] = [
   { to: '/admin/team', label: 'Team', icon: Users },
   { to: '/admin/sprint', label: 'Sprint', icon: Target },
   { to: '/admin/agent', label: 'Agent Center', icon: Activity },
+  { to: '/admin/evidence', label: 'Claims vs Evidence', icon: SearchCheck },
   { to: '/admin/approvals', label: 'Approvals', icon: CheckSquare },
   { to: '/admin/reports', label: 'Reports', icon: BarChart3 },
   { to: '/admin/integrations', label: 'Integrations', icon: Plug },
@@ -55,6 +57,7 @@ export default function App() {
           <Route path="team" element={<TeamManagement />} />
           <Route path="sprint" element={<SprintManagement />} />
           <Route path="agent" element={<AgentCenter />} />
+          <Route path="evidence" element={<ClaimsEvidence />} />
           <Route path="approvals" element={<Approvals />} />
           <Route path="reports" element={<Reports />} />
           <Route path="integrations" element={<Integrations />} />

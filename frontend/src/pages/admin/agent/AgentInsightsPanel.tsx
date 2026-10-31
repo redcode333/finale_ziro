@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom'
 import { ToneBadge } from '@/components/common/StatusBadge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { fmtTime, runStatusMeta } from '@/lib/status'
@@ -47,6 +48,9 @@ export default function AgentInsightsPanel({ dashboard, members, onReview, risks
                 {r.missing_context && <p className="text-xs text-muted-foreground">Missing context: {r.missing_context}</p>}
                 <p className="text-xs">{r.recommended_action}</p>
                 <p className="font-mono text-xs text-muted-foreground">{r.assessment_id} · evidence {r.evidence_ids.join(', ')}</p>
+                <Link to={`/admin/evidence?member=${r.member_id}`} className="inline-block text-xs text-primary hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none">
+                  Compare claims with evidence →
+                </Link>
               </div>
             ))}
             <p className="text-xs text-muted-foreground">

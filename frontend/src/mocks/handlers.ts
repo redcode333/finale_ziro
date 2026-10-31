@@ -1,4 +1,5 @@
 import { delay, http, HttpResponse } from 'msw'
+import { claimsFor } from './claims'
 import { blockers, emptyGithub, githubLinks, invitations, once, standups } from './contributor'
 import { evaluationResults, generateSummary, runEvaluations, simulate, weeklyReport } from './reports'
 import {
@@ -62,6 +63,11 @@ export const handlers = [
     return HttpResponse.json(page(evidence.filter((e) => (!m || e.member_id === m) && (!t || e.task_id === t))))
   }),
 
+  http.get('/teams/:teamId/claims', ({ request }) => {
+    const denied = adminOnly(request)
+    if (denied) return denied
+    return HttpResponse.json(page(claimsFor(new URL(request.url).searchParams.get('member_id'))))
+  }),
   http.post('/agents/analyze', async ({ request }) => {
     const denied = adminOnly(request)
     if (denied) return denied
