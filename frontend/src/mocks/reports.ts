@@ -1,13 +1,16 @@
 import dataset from '../../../data/synthetic_dataset/dataset.json'
-import type { EvaluationCase, EvaluationResults, SimulationResult, WeeklyReport } from '@/types'
+import type { EvaluationCase, EvaluationResults, ReportSummary, SimulationResult, WeeklyReport } from '@/types'
 import { TEAM_ID, approvals, evidence, members, risks, sprints, tasks } from './store'
 
 const cases = dataset.tables.evaluation_cases as unknown as Record<string, string>[]
 
 // Built only from stored records: counts and links, no invented narrative.
+let summary: ReportSummary | null = null
+
 export function weeklyReport(): WeeklyReport {
   const count = (s: string) => tasks.filter((t) => t.status === s).length
   return {
+    summary,
     team_id: TEAM_ID,
     sprint: sprints[0],
     generated_at: new Date().toISOString(),
@@ -122,3 +125,43 @@ const SCENARIOS: Record<string, Omit<SimulationResult, 'scenario' | 'simulated'>
 export const scenarioList = Object.entries(SCENARIOS).map(([id, s]) => ({ id, title: s.title }))
 export const simulate = (id: string): SimulationResult | undefined =>
   SCENARIOS[id] ? { scenario: id, simulated: true, ...SCENARIOS[id] } : undefined
+
+const nm = (id: string) => members.find((m) => m.member_id === id)?.name ?? id
+
+// Sample narrative assembled from stored records. Not a model call; the real text comes from the backend report-writer node.
+export function generateSummary(): ReportSummary {
+  const r = weeklyReport()
+  const p = r.progress
+  const pct = Math.round((p.done / Math.max(1, p.total)) * 100)
+  const statements: ReportSummary['statements'] = [
+    { text: `${r.sprint.name} is ${pct}% complete by task count (${p.done} of ${p.total} done); ${p.in_progress} in progress, ${p.blocked} blocked, ${p.todo} not started.`,
+      refs: tasks.filter((t) => t.status === 'done').map((t) => t.task_id) },
+  ]
+  for (const b of r.blockers) {
+    statements.push({
+      text: `${b.task_id} (${b.title}, owned by ${nm(b.assignee_id)}) is blocked${b.dependency_task_ids.length ? ` and depends on ${b.dependency_task_ids.join(', ')}` : ''}.`,
+      refs: [b.task_id],
+    })
+  }
+  for (const d of r.discrepancies) {
+    const mismatch = d.status === 'partially_verified' || d.status === 'unverified'
+    statements.push({
+      text: `${nm(d.member_id)}: ${d.summary}${d.missing_context ? ` Open item: ${d.missing_context}` : ''}${mismatch ? ' This is a request for clarification, not a finding of inactivity.' : ''}`,
+      refs: [d.assessment_id, ...d.evidence_ids],
+    })
+  }
+  for (const a of risks.filter((x) => x.status === 'verified_contribution')) {
+    statements.push({
+      text: `${nm(a.member_id)}'s contribution is supported by reviews, QA and documentation work, not only commits. ${a.missing_context ? `Open item: ${a.missing_context}` : ''}`.trim(),
+      refs: [a.assessment_id, ...a.evidence_ids],
+    })
+  }
+  for (const a of approvals.filter((x) => x.status !== 'superseded')) {
+    statements.push({
+      text: `Proposal ${a.approval_id} suggests moving ${a.task_id} from ${nm(a.current_assignee_id)} to ${nm(a.proposed_assignee_id)}; status: ${a.status.replaceAll('_', ' ')}. No assignment changes without mentor approval.`,
+      refs: [a.approval_id, a.task_id],
+    })
+  }
+  summary = { statements, generated_at: new Date().toISOString(), provider: 'mock', model: 'sample-report-writer', sample: true }
+  return summary
+}

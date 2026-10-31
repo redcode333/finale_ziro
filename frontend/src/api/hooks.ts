@@ -183,3 +183,11 @@ export function useGithubDisconnect(scope: GithubScope) {
     onError: (e) => toast.error(errMsg(e)),
   })
 }
+
+export function useGenerateReport(teamId: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: () => api.generateReport(teamId),
+    onSuccess: (d) => { qc.setQueryData(['weekly-report', teamId], d); toast.success('Mentor summary written') },
+  })
+}

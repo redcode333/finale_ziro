@@ -206,7 +206,18 @@ export interface Page<T> {
   next_cursor: string | null
 }
 
+export interface ReportSummary {
+  // Each statement cites the stored records (tasks, evidence, assessments, approvals) it is based on.
+  statements: { text: string; refs: string[] }[]
+  generated_at: string
+  provider: string
+  model: string
+  // True when produced by the mock backend, not a language model.
+  sample: boolean
+}
+
 export interface WeeklyReport {
+  summary: ReportSummary | null
   team_id: string
   sprint: Sprint
   generated_at: string

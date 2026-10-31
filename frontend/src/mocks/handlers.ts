@@ -1,6 +1,6 @@
 import { delay, http, HttpResponse } from 'msw'
 import { blockers, emptyGithub, githubLinks, invitations, once, standups } from './contributor'
-import { evaluationResults, runEvaluations, simulate, weeklyReport } from './reports'
+import { evaluationResults, generateSummary, runEvaluations, simulate, weeklyReport } from './reports'
 import {
   ADMIN_ID, TEAM_ID, approvals, auditEvents, controlRun, dashboardFor, decide, evidence, getEvents, getRun,
   getRuns, members, mockUsers, notifications, publicRec, retryExecution, risks, settle, sprints, startRun, tasks,
@@ -267,6 +267,16 @@ export const handlers = [
     return HttpResponse.json(emptyGithub(scope))
   }),
   http.get('/reports/weekly', ({ request }) => adminOnly(request) ?? HttpResponse.json(weeklyReport())),
+  http.post('/reports/weekly/generate', async ({ request }) => {
+    const denied = adminOnly(request)
+    if (denied) return denied
+    await delay(1600)
+    let fail503 = false
+    try { fail503 = localStorage.getItem('mock.failReport') === '1' } catch { /* storage unavailable */ }
+    if (fail503) return fail(503, 'llm_unavailable', 'The report writer is unavailable (both language-model providers failed).')
+    generateSummary()
+    return HttpResponse.json(weeklyReport())
+  }),
   http.post('/evaluations/run', async ({ request }) => {
     const denied = adminOnly(request)
     if (denied) return denied

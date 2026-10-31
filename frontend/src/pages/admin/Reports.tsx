@@ -1,15 +1,22 @@
-import { useWeeklyReport } from '@/api/hooks'
+import { useState } from 'react'
+import { useEvidence, useGenerateReport, useMembers, useWeeklyReport } from '@/api/hooks'
 import { useAuth } from '@/auth/AuthContext'
 import { ApprovalStatusBadge, ToneBadge } from '@/components/common/StatusBadge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { fmtTime } from '@/lib/status'
 import { nameOf } from '@/lib/workload'
+import EvidenceExplorer from './agent/EvidenceExplorer'
+import MentorSummary from './MentorSummary'
 
 export default function Reports() {
   const { me } = useAuth()
   const teamId = me?.memberships.find((m) => m.role === 'ADMIN')?.team_id ?? ''
   const { data: r, isPending, isError } = useWeeklyReport(teamId)
+  const generate = useGenerateReport(teamId)
+  const { data: evidence } = useEvidence(teamId)
+  const { data: teamMembers } = useMembers(teamId)
+  const [cite, setCite] = useState<string | null>(null)
 
   if (isError) return <p role="alert" className="text-critical">Could not load the weekly report.</p>
   if (isPending || !r) return <Skeleton className="h-64" />
@@ -24,10 +31,11 @@ export default function Reports() {
           <h1 className="text-xl font-semibold tracking-tight">Weekly mentor report</h1>
           <p className="text-sm text-muted-foreground">{r.sprint.name} · generated {fmtTime(r.generated_at)} from persisted records</p>
         </div>
-        <button type="button" onClick={() => window.print()} className="rounded-lg border border-border px-3 py-1.5 text-sm hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none print:hidden">
-          Print / save as PDF
-        </button>
+
       </div>
+
+      <MentorSummary report={r} generating={generate.isPending} error={generate.error}
+        onGenerate={() => generate.mutate()} onCite={setCite} />
 
       <Card>
         <CardHeader><CardTitle>Progress</CardTitle></CardHeader>
@@ -101,6 +109,7 @@ export default function Reports() {
           ))}
         </CardContent>
       </Card>
+      <EvidenceExplorer key={cite ?? 'closed'} open={!!cite} initialQuery={cite ?? ''} onClose={() => setCite(null)} evidence={evidence} members={teamMembers} />
     </section>
   )
 }

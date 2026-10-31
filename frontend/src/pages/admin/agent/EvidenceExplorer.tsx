@@ -11,8 +11,8 @@ const LABEL: Record<EvidenceRecord['source_type'], string> = {
 }
 
 // P1 evidence explorer: browse the source records the agent used. Verification states live on the risk cards.
-export default function EvidenceExplorer({ open, onClose, evidence, members }: { open: boolean; onClose: () => void; evidence?: EvidenceRecord[]; members?: Member[] }) {
-  const [q, setQ] = useState('')
+export default function EvidenceExplorer({ open, onClose, evidence, members, initialQuery = '' }: { open: boolean; onClose: () => void; evidence?: EvidenceRecord[]; members?: Member[]; initialQuery?: string }) {
+  const [q, setQ] = useState(initialQuery)
   const shown = useMemo(() => {
     const n = q.trim().toLowerCase()
     return (evidence ?? []).filter((e) => !n || [e.id, e.title, e.task_id ?? '', nameOf(members, e.member_id)].some((s) => s.toLowerCase().includes(n)))

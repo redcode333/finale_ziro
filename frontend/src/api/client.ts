@@ -89,6 +89,7 @@ export const api = {
   githubDisconnect: (scope: GithubScope) =>
     request<GithubConnection>(`/integrations/github${qs({ scope })}`, { method: 'DELETE', idempotent: true }),
   weeklyReport: (teamId: string) => request<WeeklyReport>(`/reports/weekly${qs({ team_id: teamId })}`),
+  generateReport: (teamId: string) => post<WeeklyReport>(`/reports/weekly/generate${qs({ team_id: teamId })}`),
   runEvaluations: () => post<EvaluationResults>('/evaluations/run'),
   evaluationResults: () => request<EvaluationResults>('/evaluations/results'),
   simulate: (scenario: string) => post<SimulationResult>(`/reliability/simulate/${scenario}`),

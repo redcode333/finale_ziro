@@ -179,7 +179,9 @@ Delimited CSV fields (`;`) become arrays in the API.
 ## 9. Added during frontend build (please review)
 
 - Contributor endpoints above (standups list, blockers list, task status PATCH) and the scoping rules.
-- `GET /reports/weekly` returns `{progress, blockers, discrepancies, contributions, recommendations, basis: "persisted_records"}`.
+- `GET /reports/weekly` returns `{summary, progress, blockers, discrepancies, contributions, recommendations, basis: "persisted_records"}`.
+- **Mentor summary (report writer).** `summary` is `null` until generated, then `{statements: [{text, refs: string[]}], generated_at, provider, model, sample}`. `refs` are IDs of the stored records the statement is based on (tasks `T…`, evidence `GH…/W…/SU…`, assessments `RA…`, approvals `AP…`); the UI links evidence IDs to the evidence explorer. `sample: true` marks mock text (not a model).
+- `POST /reports/weekly/generate?team_id=` (ADMIN) runs the report-writer node and returns the full report with `summary` filled. On provider failure return `503 {error.code: "llm_unavailable"}`; the UI then keeps showing the stored-record facts and offers a retry. The backend must write only from persisted records and must not invent figures or accuse anyone. The report must always be re-derivable from the facts sections.
 - `POST /evaluations/run` and `GET /evaluations/results` return `{mode: "mock"|"live", cases[], metrics{}}`. Metrics are `null` until a real run computes them. The mock never marks a case as passed.
 - `POST /reliability/simulate/{scenario}` returns `{simulated: true, steps[], outcome, assertions[]}`. Scenarios: `unauthorized_reassignment`, `llm_timeout_fallback`, `both_llm_down`, `github_503`, `prompt_injection`, `duplicate_event`.
 - Event `status` for the "waiting for approval" event: the mock sends `running`; the UI renders it as amber Pending without a pulse. A distinct state would be cleaner.
