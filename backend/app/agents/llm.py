@@ -14,6 +14,7 @@ import httpx
 from pydantic import BaseModel, ValidationError
 
 from app.config import get_settings
+from app.metrics import REGISTRY
 
 logger = logging.getLogger("fairsprint.llm")
 M = TypeVar("M", bound=BaseModel)
@@ -115,6 +116,11 @@ def parse_structured(raw: str, schema: type[M]) -> M:
         raise LLMError("invalid_output", f"output failed {schema.__name__} validation") from exc
 
 
+def _record(prov: "Provider", outcome: str, seconds: float) -> None:
+    REGISTRY.observe("llm_call_duration_seconds", seconds, provider=prov.name, model=prov.model, outcome=outcome)
+    REGISTRY.inc("llm_calls_total", provider=prov.name, model=prov.model, outcome=outcome)
+
+
 @dataclass
 class LLMRouter:
     providers: list[Provider]
@@ -142,10 +148,14 @@ class LLMRouter:
                     result = parse_structured(prov.complete(system_full, user), schema)
                     rec.update(status="success", latency_ms=int((time.monotonic() - t0) * 1000))
                     self.calls.append(rec)
+                    _record(prov, "success", time.monotonic() - t0)
+                    if fallback_reason:
+                        REGISTRY.inc("llm_fallbacks_total", provider=prov.name)
                     return result
                 except LLMError as exc:
                     rec.update(status="error", error=f"{exc.kind}: {exc.message}", latency_ms=int((time.monotonic() - t0) * 1000))
                     self.calls.append(rec)
+                    _record(prov, exc.kind, time.monotonic() - t0)
                     attempts.append(rec)
                     logger.warning("LLM %s attempt %d failed: %s", prov.name, attempt, rec["error"])
                     if exc.kind in ("auth", "config"):

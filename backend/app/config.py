@@ -28,6 +28,8 @@ class Settings(BaseSettings):
 
     # POST /teams/{id}/seed is disabled unless this is set; callers send it as `X-Admin-Token`.
     seed_admin_token: str = ""
+    # When set, GET /metrics requires `Authorization: Bearer <this value>`. Empty leaves it open (default).
+    metrics_token: str = ""
     # Optional override; by default the synthetic dataset ZIP is looked up in the project root.
     seed_zip_path: str = ""
 
