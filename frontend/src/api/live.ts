@@ -6,6 +6,7 @@ import type {
   Recommendation, ReplanImpact, ReportSummary, RiskAssessment, RunStage, RunStatus, Sprint, Task, ToolCall, WeeklyReport,
   DecisionRequest,
 } from '@/types'
+import { buildMentorLoginRequest } from '@/lib/turnstile'
 import { ApiError } from './errors'
 
 const BASE = ((import.meta.env.VITE_LIVE_API_URL as string | undefined) ?? '').replace(/\/$/, '')
@@ -40,6 +41,16 @@ async function lreq<T>(path: string, init: RequestInit = {}): Promise<T> {
     throw new ApiError(res.status, { code: b?.code ?? 'http_error', message: b?.message ?? `Request failed (${res.status})`, request_id: '', retryable: res.status >= 500 })
   }
   return (await res.json()) as T
+}
+
+// Sign-in gate: the backend checks the Turnstile token (when enabled) before it even looks at the mentor token.
+// A rejection is thrown as an ApiError carrying the backend's code and message.
+export async function mentorLogin(mentorToken: string, turnstileToken: string | null): Promise<void> {
+  const res = await fetch(`${BASE}/auth/mentor-login`, buildMentorLoginRequest(mentorToken, turnstileToken))
+  if (!res.ok) {
+    const b = (await res.json().catch(() => undefined)) as { code?: string; message?: string } | undefined
+    throw new ApiError(res.status, { code: b?.code ?? 'http_error', message: b?.message ?? `Sign-in failed (${res.status})`, request_id: '', retryable: res.status >= 500 })
+  }
 }
 
 // Several adapters read the same run or the same lists on every 2 s poll; share one request per short window.

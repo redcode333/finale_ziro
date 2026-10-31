@@ -29,8 +29,7 @@ def get_repo() -> Repo:
     return Repo()
 
 
-def get_current_mentor(repo: Annotated[Repo, Depends(get_repo)],
-                       authorization: Annotated[str | None, Header()] = None) -> Mentor:
+def mentor_from_authorization(repo: Repo, authorization: str | None) -> Mentor:
     scheme, _, token = (authorization or "").partition(" ")
     if scheme.lower() != "bearer" or not token:
         raise AppError("Missing bearer token.", status_code=401, code="unauthorized")
@@ -40,6 +39,20 @@ def get_current_mentor(repo: Annotated[Repo, Depends(get_repo)],
     return Mentor(mentor_id=row["mentor_id"], team_id=row["team_id"], name=row["name"])
 
 
+def get_current_mentor(repo: Annotated[Repo, Depends(get_repo)],
+                       authorization: Annotated[str | None, Header()] = None) -> Mentor:
+    return mentor_from_authorization(repo, authorization)
+
+
 def require_team_scope(mentor: Mentor, team_id: str) -> None:
     if mentor.team_id != team_id:
         raise AppError("This mentor is not authorised for that team.", status_code=403, code="forbidden")
+
+
+def scoped_to_team(team_id: str, mentor: Annotated[Mentor, Depends(get_current_mentor)]) -> Mentor:
+    """Route dependency for /teams/{team_id}/...: 401 without a valid mentor token, 403 for another team's mentor.
+
+    The team check runs before any data access, so an unknown team and another team's team answer identically.
+    """
+    require_team_scope(mentor, team_id)
+    return mentor

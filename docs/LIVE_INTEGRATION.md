@@ -54,9 +54,28 @@ Verified end to end against the real FastAPI app (real routes, schemas, LangGrap
 
 ## Findings for the backend owner
 
-1. **Team data is unauthenticated.** `GET /teams/{id}/dashboard|members|tasks|standups|evidence` and `GET /github/activity` take no bearer token and no team scope, unlike the agent routes. Anyone who can reach the API can read every member's email and standups. Add `get_current_mentor` + `require_team_scope`.
+1. **Team data now requires a mentor token (fixed).** `GET /teams/{id}/dashboard|members|tasks|standups|evidence` and `GET /github/activity` return 401 without a valid mentor bearer token and 403 for another team's mentor (an unknown team answers the same 403, so teams cannot be enumerated). `/health` stays public and `POST /teams/{id}/seed` keeps its own `X-Admin-Token`.
 2. **Run listing and timeline.** There is no `GET /agent-runs?team_id=` (the UI recomputes the deterministic run id), `RunSummary` has no `started_at`/`finished_at`, and there is no events endpoint, so the timeline is derived from the run detail (`phase`, tool calls, LLM calls) without per-step timestamps. Tool and LLM traces now come from the new trace endpoints.
 3. **Idempotent analyze.** Repeating `POST /agents/analyze` returns the existing run (even a completed one), so a second "Analyze Sprint" click does nothing new. If a fresh run per click is wanted, accept a nonce or `as_of`.
 4. **Error envelope.** Errors are `{code, message, detail}`; the contract says `{error: {code, message, request_id, retryable}}`. The adapter handles the backend's shape; the contract should be updated to match.
 5. **Impact data.** The UI needs `impact` (before/after workload and checks) per proposal. The backend returns only `capacity_check`/`dependency_check` strings, so the adapter recomputes the arithmetic from members and tasks. Returning it from the backend would make the numbers authoritative.
 6. **Per-claim verdicts and a written summary.** The report is rule-based text. If an LLM-written narrative is wanted, return it as `summary.statements[{text, refs}]` (see `API_CONTRACT.md`).
+
+## Cloudflare Turnstile on mentor sign-in
+
+Sign-in has no login endpoint of its own in the mentor-token flow, so the backend adds `POST /auth/mentor-login`: the Turnstile token
+is checked first (so the endpoint cannot be used to probe which mentor tokens are valid), then the mentor token. Other API
+calls are unchanged. Contributor sign-in is a demo identity with no backend, so it has no widget.
+
+Render environment variables (Web Service → Environment):
+
+| Variable | Value | Notes |
+|---|---|---|
+| `TURNSTILE_ENABLED` | `true` | Backend. Anything else disables the check. |
+| `TURNSTILE_SECRET_KEY` | secret from Cloudflare | Backend only. Never a `VITE_` variable. Mark it as a secret. |
+| `TURNSTILE_ALLOWED_HOSTNAMES` | `finale-ziro-h79s.onrender.com` | Optional; this is the default. |
+| `VITE_TURNSTILE_SITE_KEY` | site key from Cloudflare | Public. Read at **build** time: redeploy after changing it. |
+
+In the Cloudflare dashboard create a Turnstile widget (Managed mode) whose allowed hostname is `finale-ziro-h79s.onrender.com`.
+Locally leave `TURNSTILE_ENABLED=false` and `VITE_TURNSTILE_SITE_KEY` empty. To try the real widget locally use Cloudflare's
+test keys, add `localhost` to `TURNSTILE_ALLOWED_HOSTNAMES` and set both keys in `backend/.env` and `frontend/.env.local`.
