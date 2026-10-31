@@ -1,3 +1,4 @@
+import MockOnlyNote from '@/components/common/MockOnlyNote'
 import { useState } from 'react'
 import { useInvitations, useInvite, useMembers, useRevokeInvitation, useSprints, useTasks } from '@/api/hooks'
 import { useAuth } from '@/auth/AuthContext'
@@ -76,6 +77,7 @@ export default function TeamManagement() {
       <Card>
         <CardHeader><CardTitle>Invite a contributor</CardTitle></CardHeader>
         <CardContent className="space-y-4">
+          <MockOnlyNote what="Invitations" />
           <form onSubmit={onInvite} className="flex flex-wrap items-end gap-2">
             <div className="min-w-60 flex-1 space-y-1">
               <label htmlFor="invite-email" className="text-sm">Email address</label>

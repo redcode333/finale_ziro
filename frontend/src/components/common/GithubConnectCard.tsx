@@ -1,3 +1,4 @@
+import MockOnlyNote from '@/components/common/MockOnlyNote'
 import { GitBranch } from 'lucide-react'
 import { useGithub, useGithubConnect, useGithubDisconnect } from '@/api/hooks'
 import { ToneBadge } from '@/components/common/StatusBadge'
@@ -37,6 +38,7 @@ export default function GithubConnectCard({ scope }: { scope: GithubScope }) {
           <p role="alert" className="text-critical">Could not load the GitHub connection status.</p>
         ) : (
           <>
+            <MockOnlyNote what="The GitHub connection" />
             <p className="text-muted-foreground">{copy.blurb}</p>
             {data.status === 'connected' && (
               <dl className="grid grid-cols-[120px_1fr] gap-1 text-xs">

@@ -164,6 +164,6 @@ export function generateSummary(): ReportSummary {
       refs: [a.approval_id, a.task_id],
     })
   }
-  summary = { statements, generated_at: new Date().toISOString(), provider: 'mock', model: 'sample-report-writer', sample: true }
+  summary = { statements, generated_at: new Date().toISOString(), provider: 'mock', model: 'sample-report-writer', kind: 'sample' }
   return summary
 }

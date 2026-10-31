@@ -1,9 +1,11 @@
 import { ShieldCheck, UserRound } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { liveConfigured } from '@/api/live'
 import { useAuth } from '@/auth/AuthContext'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
 import { mockUsers } from '@/mocks/store'
 import type { Role } from '@/types'
 
@@ -16,9 +18,11 @@ const CARDS: { role: Role; title: string; blurb: string; cta: string; icon: type
 
 // The selected card is only a navigation preference. The backend /me response decides which portal opens.
 export default function SignIn() {
-  const { me, signIn, rolesFor } = useAuth()
+  const { me, error, signIn, signInWithToken, rolesFor } = useAuth()
   const navigate = useNavigate()
   const [wanted, setWanted] = useState<Role | null>(null)
+  const [token, setToken] = useState('')
+  const [demo, setDemo] = useState(!liveConfigured)
 
   useEffect(() => {
     if (!me) return
@@ -27,6 +31,10 @@ export default function SignIn() {
     else if (wanted) navigate('/denied', { replace: true, state: { wanted } })
     else navigate(roles.includes('ADMIN') ? '/admin' : '/contributor', { replace: true })
   }, [me, wanted, navigate, rolesFor])
+
+  const useToken = wanted === 'ADMIN' && liveConfigured && !demo
+  // Contributors have no login on the live backend yet, so they always use the demo identities.
+  const showDemo = wanted !== null && !useToken
 
   return (
     <main className="mx-auto flex min-h-screen max-w-3xl flex-col justify-center gap-8 px-4 py-12">
@@ -53,18 +61,46 @@ export default function SignIn() {
           </Card>
         ))}
       </div>
-      {wanted && (
+
+      {error && <p role="alert" className="rounded-lg border border-critical/40 bg-critical/10 p-2.5 text-sm text-critical">{error}</p>}
+
+      {useToken && (
         <Card>
           <CardHeader>
-            <CardTitle>Mock sign-in</CardTitle>
-            <CardDescription>Development only. Pick an identity; Supabase Auth replaces this later.</CardDescription>
+            <CardTitle>Mentor sign-in (live backend)</CardTitle>
+            <CardDescription>Paste your mentor token. It is kept only for this browser tab and sent to the backend as a bearer token.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form className="flex flex-wrap gap-2" onSubmit={(e) => { e.preventDefault(); if (token.trim()) signInWithToken(token) }}>
+              <label htmlFor="mentor-token" className="sr-only">Mentor token</label>
+              <Input id="mentor-token" type="password" autoComplete="off" value={token} onChange={(e) => setToken(e.target.value)} placeholder="fsm_…" className="min-w-60 flex-1" />
+              <Button type="submit" disabled={!token.trim()}>Sign in</Button>
+            </form>
+            <button type="button" onClick={() => setDemo(true)} className="mt-3 text-xs text-muted-foreground underline-offset-2 hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none">
+              Use demo data instead
+            </button>
+          </CardContent>
+        </Card>
+      )}
+
+      {showDemo && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Demo sign-in</CardTitle>
+            <CardDescription>
+              Development only: pick a demo identity; everything uses mock data.
+              {liveConfigured && wanted === 'CONTRIBUTOR' && ' Contributor sign-in is not available on the live backend yet.'}
+            </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-wrap gap-2">
             {mockUsers.map((u) => (
-              <Button key={u.user_id} size="sm" variant="outline" onClick={() => signIn(u.user_id)}>
-                {u.label}
-              </Button>
+              <Button key={u.user_id} size="sm" variant="outline" onClick={() => signIn(u.user_id)}>{u.label}</Button>
             ))}
+            {liveConfigured && wanted === 'ADMIN' && (
+              <button type="button" onClick={() => setDemo(false)} className="w-full text-left text-xs text-muted-foreground underline-offset-2 hover:underline">
+                Back to mentor token sign-in
+              </button>
+            )}
           </CardContent>
         </Card>
       )}

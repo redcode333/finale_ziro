@@ -8,7 +8,8 @@ export function reportToMarkdown(r: WeeklyReport): string {
 
   if (r.summary) {
     L.push('## Mentor summary', '')
-    const label = r.summary.sample ? 'Sample text from the mock backend (not a language model)' : `AI-written (${r.summary.provider}, ${r.summary.model})`
+    const k = r.summary.kind
+    const label = k === 'sample' ? 'Sample text from the mock backend (not a language model)' : k === 'deterministic' ? `Compiled by rules from stored records (${r.summary.model})` : `AI-written (${r.summary.provider}, ${r.summary.model})`
     L.push(`_${label}. Citations are record IDs._`, '')
     for (const s of r.summary.statements) L.push(`- ${s.text}${s.refs.length ? ` [${s.refs.join(', ')}]` : ''}`)
     L.push('')
