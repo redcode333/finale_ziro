@@ -20,7 +20,9 @@ class Settings(BaseSettings):
     openai_api_key: str = ""
 
     # LLM providers: Gemini primary, Groq fallback
-    gemini_model: str = "gemini-2.5-flash"
+    # gemini-2.5-flash was retired for new API keys (HTTP 404). On the agent's real prompts, 3.5-flash-lite finished in ~8s per call
+    # versus ~15-25s for 3.5-flash, which sits close to the 30s per-call timeout.
+    gemini_model: str = "gemini-3.5-flash-lite"
     groq_api_key: str = ""
     groq_model: str = "openai/gpt-oss-120b"
     agent_max_iterations: int = 5
