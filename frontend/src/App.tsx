@@ -7,6 +7,7 @@ import ComingSoon from '@/pages/ComingSoon'
 import Denied from '@/pages/Denied'
 import SignIn from '@/pages/SignIn'
 import Overview from '@/pages/admin/Overview'
+import AgentCenter from '@/pages/admin/agent/AgentCenter'
 import { RequireRole } from '@/routes/Guards'
 
 const adminNav: NavItem[] = [
@@ -38,7 +39,7 @@ export default function App() {
           <Route index element={<Overview />} />
           <Route path="team" element={stub('Team')} />
           <Route path="sprint" element={stub('Sprint')} />
-          <Route path="agent" element={stub('Agent Center')} />
+          <Route path="agent" element={<AgentCenter />} />
           <Route path="approvals" element={stub('Approvals')} />
           <Route path="reports" element={stub('Weekly report')} />
           <Route path="reliability" element={stub('Reliability Lab')} />
