@@ -46,3 +46,10 @@ The service-role key is server-only: never put it in the frontend or commit `.en
 
 ## Layout
 `app/routes` HTTP routes · `app/schemas` Pydantic models · `app/services` business logic · `app/tools` future GitHub tools · `app/agents` future LangGraph agents.
+
+## Human verification (Cloudflare Turnstile)
+
+Mentor sign-in goes through `POST /auth/mentor-login` (mentor token as the bearer token, `{"turnstile_token": ...}` in the body).
+With `TURNSTILE_ENABLED=true` the Turnstile token is verified server-side with Cloudflare **before** the mentor token is checked;
+anything but a fresh, valid token for an allowed hostname (`TURNSTILE_ALLOWED_HOSTNAMES`) is rejected, and so is a Cloudflare outage
+or a missing `TURNSTILE_SECRET_KEY`. With `TURNSTILE_ENABLED=false` (the default) only the mentor token is checked.

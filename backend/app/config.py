@@ -20,20 +20,38 @@ class Settings(BaseSettings):
     openai_api_key: str = ""
 
     # LLM providers: Gemini primary, Groq fallback
-    gemini_model: str = "gemini-2.5-flash"
+    # gemini-2.5-flash was retired for new API keys (HTTP 404). On the agent's real prompts, 3.5-flash-lite finished in ~8s per call
+    # versus ~15-25s for 3.5-flash, which sits close to the 30s per-call timeout.
+    gemini_model: str = "gemini-3.5-flash-lite"
     groq_api_key: str = ""
     groq_model: str = "openai/gpt-oss-120b"
     agent_max_iterations: int = 5
     agent_timeout_seconds: int = 60
 
+    # Built React app served by FastAPI. Empty = <repo>/frontend/dist; nothing is served if that build is absent.
+    frontend_dist_dir: str = ""
+
+    # Cloudflare Turnstile guards mentor sign-in. Off by default so local development needs no keys; when enabled the
+    # secret is required and every verification failure (including Cloudflare being unreachable) is rejected.
+    turnstile_enabled: bool = False
+    turnstile_secret_key: str = ""
+    # Hostnames Cloudflare may report for a valid widget. Add localhost to test the real widget locally.
+    turnstile_allowed_hostnames: str = "finale-ziro-h79s.onrender.com"
+
     # POST /teams/{id}/seed is disabled unless this is set; callers send it as `X-Admin-Token`.
     seed_admin_token: str = ""
+    # When set, GET /metrics requires `Authorization: Bearer <this value>`. Empty leaves it open (default).
+    metrics_token: str = ""
     # Optional override; by default the synthetic dataset ZIP is looked up in the project root.
     seed_zip_path: str = ""
 
     @property
     def cors_origin_list(self) -> list[str]:
         return [o.strip() for o in self.cors_origins.split(",") if o.strip()]
+
+    @property
+    def turnstile_hostname_list(self) -> list[str]:
+        return [h.strip().lower() for h in self.turnstile_allowed_hostnames.split(",") if h.strip()]
 
     @property
     def supabase_configured(self) -> bool:

@@ -1,13 +1,17 @@
 import { ShieldCheck, UserRound } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { liveConfigured } from '@/api/live'
+import { liveConfigured, mentorLogin } from '@/api/live'
+import { ApiError } from '@/api/errors'
 import { useAuth } from '@/auth/AuthContext'
+import TurnstileWidget from '@/components/common/TurnstileWidget'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { mockUsers } from '@/mocks/store'
 import type { Role } from '@/types'
+
+const TURNSTILE_SITE_KEY = (import.meta.env.VITE_TURNSTILE_SITE_KEY as string | undefined) ?? ''
 
 const CARDS: { role: Role; title: string; blurb: string; cta: string; icon: typeof ShieldCheck }[] = [
   { role: 'ADMIN', title: 'Admin', icon: ShieldCheck, cta: 'Continue to Admin Sign-in',
@@ -23,6 +27,10 @@ export default function SignIn() {
   const [wanted, setWanted] = useState<Role | null>(null)
   const [token, setToken] = useState('')
   const [demo, setDemo] = useState(!liveConfigured)
+  const [human, setHuman] = useState<string | null>(null)
+  const [resetSignal, setResetSignal] = useState(0)
+  const [busy, setBusy] = useState(false)
+  const [formError, setFormError] = useState<string | null>(null)
 
   useEffect(() => {
     if (!me) return
@@ -35,6 +43,23 @@ export default function SignIn() {
   const useToken = wanted === 'ADMIN' && liveConfigured && !demo
   // Contributors have no login on the live backend yet, so they always use the demo identities.
   const showDemo = wanted !== null && !useToken
+
+  // The backend verifies the Turnstile token before it checks the mentor token. Whatever the outcome, the token is spent,
+  // so a failed attempt always asks the widget for a fresh one.
+  async function submitToken(e: FormEvent) {
+    e.preventDefault()
+    if (!token.trim() || busy) return
+    setBusy(true); setFormError(null)
+    try {
+      await mentorLogin(token, human)
+      signInWithToken(token)
+    } catch (err) {
+      setFormError(err instanceof ApiError ? err.message : 'Could not reach the server. Check your connection and try again.')
+      setHuman(null); setResetSignal((n) => n + 1)
+    } finally {
+      setBusy(false)
+    }
+  }
 
   return (
     <main className="mx-auto flex min-h-screen max-w-3xl flex-col justify-center gap-8 px-4 py-12">
@@ -71,10 +96,14 @@ export default function SignIn() {
             <CardDescription>Paste your mentor token. It is kept only for this browser tab and sent to the backend as a bearer token.</CardDescription>
           </CardHeader>
           <CardContent>
-            <form className="flex flex-wrap gap-2" onSubmit={(e) => { e.preventDefault(); if (token.trim()) signInWithToken(token) }}>
-              <label htmlFor="mentor-token" className="sr-only">Mentor token</label>
-              <Input id="mentor-token" type="password" autoComplete="off" value={token} onChange={(e) => setToken(e.target.value)} placeholder="fsm_…" className="min-w-60 flex-1" />
-              <Button type="submit" disabled={!token.trim()}>Sign in</Button>
+            <form className="space-y-3" onSubmit={submitToken}>
+              <div className="flex flex-wrap gap-2">
+                <label htmlFor="mentor-token" className="sr-only">Mentor token</label>
+                <Input id="mentor-token" type="password" autoComplete="off" value={token} onChange={(e) => setToken(e.target.value)} placeholder="fsm_…" className="min-w-60 flex-1" />
+                <Button type="submit" disabled={!token.trim() || busy || (!!TURNSTILE_SITE_KEY && !human)}>{busy ? 'Signing in…' : 'Sign in'}</Button>
+              </div>
+              {TURNSTILE_SITE_KEY && <TurnstileWidget siteKey={TURNSTILE_SITE_KEY} action="mentor_login" onToken={setHuman} resetSignal={resetSignal} />}
+              {formError && <p role="alert" className="rounded-lg border border-critical/40 bg-critical/10 p-2.5 text-sm text-critical">{formError}</p>}
             </form>
             <button type="button" onClick={() => setDemo(true)} className="mt-3 text-xs text-muted-foreground underline-offset-2 hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none">
               Use demo data instead

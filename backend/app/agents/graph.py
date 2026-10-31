@@ -17,6 +17,7 @@ from app.agents import verify as V
 from app.agents.llm import LLMRouter, LLMUnavailable
 from app.agents.repository import Repo, now_iso
 from app.agents.state import AgentState
+from app.metrics import REGISTRY
 from app.schemas.agent import AssessmentBatch, ExecutionPlan
 from app.services.github_service import collect_activity
 
@@ -48,6 +49,11 @@ class Deps:
     today: Callable[[], date] = lambda: datetime.now(timezone.utc).date()
 
 
+def _tool_metric(tool: str, status: str, seconds: float) -> None:
+    REGISTRY.observe("tool_call_duration_seconds", seconds, tool=tool, status=status)
+    REGISTRY.inc("tool_calls_total", tool=tool, status=status)
+
+
 class Recorder:
     """Allowlisted, budgeted tool invocation with per-call timing and status logs."""
 
@@ -69,11 +75,13 @@ class Recorder:
         except Exception as exc:
             rec.update(status="error", latency_ms=int((time.monotonic() - t0) * 1000), result_count=0, error=str(exc)[:300])
             self.calls.append(rec)
+            _tool_metric(name, "error", time.monotonic() - t0)
             self.errors.append({"tool": name, "status": "error", "error": rec["error"]})
             raise
         status, err = status_of(result) if status_of else ("success", None)
         rec.update(status=status, latency_ms=int((time.monotonic() - t0) * 1000), result_count=count(result), error=err)
         self.calls.append(rec)
+        _tool_metric(name, status, time.monotonic() - t0)
         if err:
             self.errors.append({"tool": name, "status": status if status != "success" else "partial", "error": err})
         return result
@@ -82,9 +90,16 @@ class Recorder:
         return {"tool_calls": self.calls, "tool_errors": self.errors}
 
 
+# `<`, `>` and `&` can only occur inside JSON string literals, and < / > / & are ordinary JSON escapes, so this
+# keeps the output valid, lossless JSON (json.loads returns the original text) while making it impossible for untrusted text
+# to contain a literal "</untrusted_data>" that would close the block early. (The standard "HTML-safe JSON" encoding.)
+_MARKUP_SAFE = str.maketrans({"<": "\\u003c", ">": "\\u003e", "&": "\\u0026"})
+
+
 def _json_block(obj: Any) -> str:
+    """Wrap untrusted data for the model: serialised as JSON with markup characters escaped, inside one data block."""
     import json
-    return "<untrusted_data>\n" + json.dumps(obj, default=str) + "\n</untrusted_data>"
+    return "<untrusted_data>\n" + json.dumps(obj, default=str).translate(_MARKUP_SAFE) + "\n</untrusted_data>"
 
 
 def build_graph(deps: Deps, checkpointer=None):
@@ -214,6 +229,11 @@ def build_graph(deps: Deps, checkpointer=None):
         results += [{"member_id": m["member_id"], "has_claim": False} for m in state["members"] if m["member_id"] not in have]
         return {"verification_results": results}
 
+    def owned_evidence_ids(state, member_id: str, with_standups: bool = True) -> set[str]:
+        """Ids of the collected evidence that belongs to this member. Only these may support their assessment."""
+        pools = state["github_evidence"] + state["worklog_evidence"] + (state["standup_evidence"] if with_standups else [])
+        return {e["id"] for e in pools if "id" in e and e.get("member_id") == member_id}
+
     def unavailable_sources(state) -> list[str]:
         return sorted({e["tool"] for e in state.get("tool_errors", []) if e.get("status") in ("unavailable", "partial", "error")})
 
@@ -230,7 +250,6 @@ def build_graph(deps: Deps, checkpointer=None):
                    "members": [{"member_id": r["member_id"], "claim": r["claim_text"], "claimed_tasks": r["claimed_task_ids"],
                                 "per_task": r["per_task"], "evidence": ev_by_member.get(r["member_id"], [])} for r in with_claim]}
         batch = router.generate(ASSESS_SYSTEM, "Assess each member's claim.\n" + _json_block(payload), AssessmentBatch)
-        valid = {e["id"] for e in state["github_evidence"] + state["worklog_evidence"]}
         known = {r["member_id"] for r in with_claim}
         out, seen = [], set()
         for a in batch.assessments:
@@ -238,22 +257,23 @@ def build_graph(deps: Deps, checkpointer=None):
                 continue
             seen.add(a.member_id)
             d = a.model_dump()
-            d["invalid_refs_dropped"] = [i for i in d["evidence_ids"] if i not in valid]
-            d["evidence_ids"] = [i for i in d["evidence_ids"] if i in valid]
+            own = owned_evidence_ids(state, a.member_id, with_standups=False)  # a member's assessment may cite only their own evidence
+            d["invalid_refs_dropped"] = [i for i in d["evidence_ids"] if i not in own]
+            d["evidence_ids"] = [i for i in d["evidence_ids"] if i in own]
             out.append(d)
         return {"llm_assessments": out}
 
     # ---- 6 ----
     @step("classify_risk")
     def classify_risk(state, rec):
-        valid = {e["id"] for e in state["github_evidence"] + state["worklog_evidence"] + state["standup_evidence"] if "id" in e}
         llm = {a["member_id"]: a for a in state.get("llm_assessments", [])}
         unavailable = unavailable_sources(state)
         label = "synthetic" if state.get("source_label") == "synthetic" else "live"
         out = []
         for r in state["verification_results"]:
             has = bool(r.get("claim_text"))
-            c = V.classify(r if has else None, r["member_id"], llm.get(r["member_id"]), valid, unavailable, has_standup=has)
+            c = V.classify(r if has else None, r["member_id"], llm.get(r["member_id"]), owned_evidence_ids(state, r["member_id"]),
+                           unavailable, has_standup=has)
             c["assessment_id"] = f"RA-{state['run_id']}-{r['member_id']}"
             c["source_label"] = label
             out.append(c)
