@@ -1,3 +1,4 @@
+import MockOnlyNote from '@/components/common/MockOnlyNote'
 import { useState } from 'react'
 import { useEvaluationResults, useRunEvaluations, useSimulate } from '@/api/hooks'
 import { ToneBadge } from '@/components/common/StatusBadge'
@@ -39,6 +40,7 @@ export default function ReliabilityLab() {
         </p>
       </div>
 
+      <MockOnlyNote what="The Reliability Lab" />
       <Card>
         <CardHeader><CardTitle>Failure scenarios</CardTitle></CardHeader>
         <CardContent className="space-y-4">

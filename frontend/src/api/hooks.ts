@@ -93,7 +93,7 @@ export function useRetryApproval() {
 }
 
 export const useWeeklyReport = (teamId: string) =>
-  useQuery({ queryKey: ['weekly-report', teamId], queryFn: () => api.weeklyReport(teamId), enabled: !!teamId })
+  useQuery({ queryKey: ['weekly-report', teamId], queryFn: () => api.weeklyReport(teamId), enabled: !!teamId, retry: (n, e) => !(e instanceof ApiError && e.status === 404) && n < 1 })
 export const useEvaluationResults = () => useQuery({ queryKey: ['evaluations'], queryFn: api.evaluationResults })
 export function useRunEvaluations() {
   const qc = useQueryClient()

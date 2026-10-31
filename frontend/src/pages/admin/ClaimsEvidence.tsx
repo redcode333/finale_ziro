@@ -1,3 +1,4 @@
+import MockOnlyNote from '@/components/common/MockOnlyNote'
 import { ArrowRight, ExternalLink, Info } from 'lucide-react'
 import { useMemo } from 'react'
 import { useSearchParams } from 'react-router-dom'
@@ -104,6 +105,7 @@ export default function ClaimsEvidence() {
         <p className="text-sm text-muted-foreground">Each standup claim is matched to commits, reviews, comments and worklogs by fixed rules, not by guesswork.</p>
       </div>
 
+      <MockOnlyNote what="Claims vs evidence" />
       <p role="note" className="flex gap-2 rounded-lg border border-border bg-card p-3 text-xs text-muted-foreground">
         <Info className="mt-0.5 size-4 shrink-0" aria-hidden />
         <span>

@@ -4,6 +4,7 @@ import { useEffect } from 'react'
 import { NavLink, Outlet, useSearchParams } from 'react-router-dom'
 import { toast } from 'sonner'
 import { useAuth } from '@/auth/AuthContext'
+import { isLiveSession } from '@/api/live'
 import GithubHeaderButton from '@/components/common/GithubHeaderButton'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -68,6 +69,7 @@ export default function AppShell({ portal, items, githubScope, settingsPath }: {
           <span className="text-sm text-muted-foreground">CampusConnect · Sprint 1 – Core MVP</span>
           <div className="flex items-center gap-2">
             <GithubHeaderButton scope={githubScope} settingsPath={settingsPath} />
+            {isLiveSession() && <Badge variant="outline" title="Connected to the live backend" className="text-success">Live backend</Badge>}
             <Badge variant="outline" title="All records are fictional demo data">Synthetic data</Badge>
           </div>
         </header>

@@ -1,3 +1,4 @@
+import MockOnlyNote from '@/components/common/MockOnlyNote'
 import { ArrowRight } from 'lucide-react'
 import { useState } from 'react'
 import { useMembers, useRecommendations, useTasks } from '@/api/hooks'
@@ -8,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { isActionable } from '@/lib/status'
 import { nameOf } from '@/lib/workload'
-import type { Member, OwnerImpact, Recommendation } from '@/types'
+import type { Member, OwnerImpact, Recommendation, ReplanImpact } from '@/types'
 import ApprovalDrawer from '../agent/ApprovalDrawer'
 import ReplanChecks from './ReplanChecks'
 import RequestReplanDialog from './RequestReplanDialog'
@@ -25,7 +26,9 @@ function Owner({ title, who, impact, members, moved }: { title: string; who: Own
   )
 }
 
-function PlanCard({ rec, taskTitle, members, onReview }: { rec: Recommendation; taskTitle: string; members?: Member[]; onReview: (id: string) => void }) {
+type WithImpact = Recommendation & { impact: ReplanImpact }
+
+function PlanCard({ rec, taskTitle, members, onReview }: { rec: WithImpact; taskTitle: string; members?: Member[]; onReview: (id: string) => void }) {
   const { impact } = rec
   return (
     <article aria-label={`Re-plan ${rec.approval_id}`} className="space-y-3 rounded-xl border border-border bg-card p-4 text-sm">
@@ -68,7 +71,7 @@ export default function ReplanPanel({ teamId, sprintId }: { teamId: string; spri
 
   const inSprint = new Set((tasks ?? []).filter((t) => t.sprint_id === sprintId).map((t) => t.task_id))
   const plans = (recs ?? [])
-    .filter((r) => inSprint.has(r.task_id) && r.status !== 'superseded')
+    .filter((r): r is WithImpact => r.impact !== null && inSprint.has(r.task_id) && r.status !== 'superseded')
     .sort((a, b) => Number(!isActionable(a.status)) - Number(!isActionable(b.status)) || b.created_at.localeCompare(a.created_at))
 
   return (
@@ -82,6 +85,7 @@ export default function ReplanPanel({ teamId, sprintId }: { teamId: string; spri
           <p className="text-xs text-muted-foreground">
             Proposals are validated in code for capacity and dependencies before they appear here. Nothing is reassigned until you approve.
           </p>
+          <MockOnlyNote what="Requesting a re-plan" />
           {isPending ? <Skeleton className="h-32" /> : plans.length === 0 ? (
             <p className="py-4 text-center text-sm text-muted-foreground">No re-plan proposals for this sprint. If someone drops off, request a re-plan.</p>
           ) : plans.map((r) => (

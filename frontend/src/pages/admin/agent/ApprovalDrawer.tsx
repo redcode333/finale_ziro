@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import { Textarea } from '@/components/ui/textarea'
 import { ApiError } from '@/api/client'
+import { isLiveSession } from '@/api/live'
 import { approvalMeta, isActionable, isInFlight } from '@/lib/status'
 import { nameOf } from '@/lib/workload'
 import type { Recommendation } from '@/types'
@@ -55,6 +56,8 @@ function DrawerBody({ teamId, rec, onSwitch }: { teamId: string; rec: Recommenda
   const candidates = useMemo(() => (members ?? []).filter((m) => m.member_id !== rec.current_assignee_id), [members, rec.current_assignee_id])
   const trail = (audit ?? []).filter((a) => a.target_id === rec.approval_id || a.target_id === rec.task_id)
   const meta = approvalMeta[rec.status]
+  const isRisk = rec.type === 'risk_review'
+  const hint = isRisk ? (rec.status === 'completed' ? 'Review recorded and audit record written. No assignment was changed.' : rec.status === 'pending_review' ? 'Awaiting manager decision. Approving records your review; nothing is reassigned.' : meta.hint) : meta.hint
 
   const submit = (body: Parameters<typeof decide.mutate>[0]['body'], after?: (r: Recommendation) => void) => {
     setError(null)
@@ -76,7 +79,7 @@ function DrawerBody({ teamId, rec, onSwitch }: { teamId: string; rec: Recommenda
           Decision review <span className="font-mono text-sm font-normal text-muted-foreground">{rec.recommendation_id}</span>
           <ApprovalStatusBadge status={rec.status} />
         </SheetTitle>
-        <SheetDescription>{meta.hint}</SheetDescription>
+        <SheetDescription>{hint}</SheetDescription>
       </SheetHeader>
 
       <div className="flex-1 space-y-5 overflow-y-auto p-4">
@@ -89,13 +92,15 @@ function DrawerBody({ teamId, rec, onSwitch }: { teamId: string; rec: Recommenda
           <p className="text-xs text-muted-foreground">Downside: {rec.potential_downside}</p>
         </Section>
 
-        <Section title="Task details"><TaskSummary task={task} /></Section>
+        {!isRisk && <Section title="Task details"><TaskSummary task={task} /></Section>}
 
-        <Section title="Assignment comparison">
-          <AssignmentComparison current={current} proposed={finalOwner} tasks={allTasks} edited={edited} />
-        </Section>
+        {!isRisk && (
+          <Section title="Assignment comparison">
+            <AssignmentComparison current={current} proposed={finalOwner} tasks={allTasks} edited={edited} />
+          </Section>
+        )}
 
-        <Section title="Validation checks"><ReplanChecks checks={rec.impact.checks} /></Section>
+        {rec.impact && <Section title="Validation checks"><ReplanChecks checks={rec.impact.checks} /></Section>}
 
         {mode === 'editing' && (
           <Section title="Choose a different assignee">
@@ -129,11 +134,13 @@ function DrawerBody({ teamId, rec, onSwitch }: { teamId: string; rec: Recommenda
         {(mode === 'confirm-approve' || mode === 'confirm-modify') && (
           <div className="rounded-lg border border-primary/40 bg-primary/10 p-3 text-sm" role="group" aria-label="Confirm decision">
             <p className="font-medium">{mode === 'confirm-approve' ? 'Confirm approval' : 'Submit revised proposal'}</p>
-            <p>
-              {rec.task_id}: <span className="font-mono">{nameOf(members, rec.current_assignee_id)}</span> → <span className="font-mono text-primary">{nameOf(members, assignee)}</span>
-            </p>
+            {isRisk ? <p>Record that you reviewed the evidence for this risk review.</p> : (
+              <p>
+                {rec.task_id}: <span className="font-mono">{nameOf(members, rec.current_assignee_id)}</span> → <span className="font-mono text-primary">{nameOf(members, assignee)}</span>
+              </p>
+            )}
             <p className="text-xs text-muted-foreground">
-              {mode === 'confirm-approve' ? 'The task is not changed until the backend confirms the update.' : 'A manager-edited proposal returns to pending review and must be approved again.'}
+              {mode === 'confirm-approve' ? (isRisk ? 'Nothing is reassigned. This only records your review.' : 'The task is not changed until the backend confirms the update.') : 'A manager-edited proposal returns to pending review and must be approved again.'}
             </p>
           </div>
         )}
@@ -142,7 +149,7 @@ function DrawerBody({ teamId, rec, onSwitch }: { teamId: string; rec: Recommenda
           <div className="flex flex-wrap gap-2">
             {mode === 'review' && (<>
               <Button disabled={submitting} onClick={() => setMode('confirm-approve')}>Approve</Button>
-              <Button variant="secondary" disabled={submitting} onClick={() => setMode('editing')}>Modify</Button>
+              {!isRisk && <Button variant="secondary" disabled={submitting || isLiveSession()} title={isLiveSession() ? 'Modifying a proposal is not available on the live backend yet' : undefined} onClick={() => setMode('editing')}>Modify</Button>}
               <Button variant="destructive" disabled={submitting} onClick={() => setMode('reject')}>Reject</Button>
             </>)}
             {mode === 'editing' && (<>
@@ -164,9 +171,9 @@ function DrawerBody({ teamId, rec, onSwitch }: { teamId: string; rec: Recommenda
           </div>
         ) : (
           <div role="status" aria-live="polite" className="space-y-2 text-sm">
-            <p>{meta.label}. {meta.hint}</p>
+            <p>{isRisk && rec.status === 'completed' ? 'Reviewed' : meta.label}. {hint}</p>
             {isInFlight(rec.status) && <p className="text-xs text-muted-foreground">Actions are disabled while the update is in progress.</p>}
-            {rec.status === 'completed' && <p>Task owner is now <span className="font-medium">{nameOf(members, rec.proposed_assignee_id)}</span>.</p>}
+            {rec.status === 'completed' && !isRisk && <p>Task owner is now <span className="font-medium">{nameOf(members, rec.proposed_assignee_id)}</span>.</p>}
             {rec.status === 'superseded' && rec.superseded_by && <p>Replaced by <span className="font-mono">{rec.superseded_by}</span>.</p>}
             {rec.status === 'failed' && (
               <Button size="sm" disabled={retry.isPending} onClick={() => retry.mutate(rec.approval_id)}>Retry execution</Button>
