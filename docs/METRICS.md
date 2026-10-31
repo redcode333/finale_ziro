@@ -59,6 +59,8 @@ scrape_configs:
 - **Series limit.** At most 500 label combinations per metric; extra ones are dropped and counted in `fairsprint_metrics_dropped_series_total`.
 - **Not measured:** time spent in the browser, and Supabase latency inside a request beyond what the tool-call timings show. The agent run itself is covered through its LLM and tool calls.
 
+Measured results (P50/P95/P99 under load, the reason for the latency, and the evaluation scorecard) are in [PERFORMANCE_RESULTS.md](PERFORMANCE_RESULTS.md); `scripts/load_test.py` reproduces them.
+
 ## What it already shows
 
 Under a 12-client mixed load against the real Supabase from the Docker stack, `/teams/{team_id}/dashboard` was the slowest route (P50 about 1.4 s, P95 about 3.6 s) because it issues several sequential Supabase queries; the single-query routes had P50 of about 0.45 s. That is the first place to look if latency matters.
